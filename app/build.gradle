@@ -6,7 +6,6 @@ plugins {
 android {
     namespace 'com.bsd.remotecontrol'
     compileSdk 33
-
     defaultConfig {
         applicationId "com.bsd.remotecontrol"
         minSdk 28
@@ -14,7 +13,6 @@ android {
         versionCode 1
         versionName "1.0"
     }
-
     buildTypes {
         release { minifyEnabled false }
         debug { minifyEnabled false }
@@ -26,12 +24,6 @@ android {
     kotlinOptions { jvmTarget = '17' }
     buildFeatures { viewBinding true }
     lint { abortOnError false }
-}
-
-repositories {
-    google()
-    mavenCentral()
-    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
