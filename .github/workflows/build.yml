@@ -5,11 +5,16 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-java@v4
         with:
@@ -19,53 +24,56 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install SDK components
+      - name: Install SDK
         run: |
           sdkmanager --install "platforms;android-33" "build-tools;33.0.2"
           yes | sdkmanager --licenses || true
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
-      - name: Create local.properties
-        run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
-      - name: Show project structure
+      - name: Build
         run: |
-          echo "=== Root ===" && ls -la
-          echo "=== App ===" && ls -la app/
-          echo "=== Gradle wrapper ===" && ls -la gradle/wrapper/
-          echo "=== gradlew first line ===" && head -3 gradlew
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace 2>&1 | tee build.log || true
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace 2>&1 | tee build.log
-        continue-on-error: true
-
-      - name: Find APK and show errors
+      - name: Commit results to repo
         run: |
-          echo "=== APK files found ==="
-          find . -name "*.apk" -type f 2>/dev/null || echo "No APK found"
-          echo ""
-          echo "=== Last 80 lines of build log ==="
-          tail -80 build.log || true
-          echo ""
-          echo "=== Errors ==="
-          grep -E "^e:|error:|FAILED|Unresolved|Could not" build.log | head -30 || true
+          # בדיקה אם APK נבנה
+          APK=$(find . -name "*.apk" -type f 2>/dev/null | head -1)
+          
+          # שמירת סיכום build לrepo
+          {
+            echo "# Build Result"
+            echo "Date: $(date)"
+            echo ""
+            if [ -n "$APK" ]; then
+              echo "## ✅ SUCCESS - APK built at: $APK"
+              echo "Size: $(du -h $APK | cut -f1)"
+            else
+              echo "## ❌ FAILED - No APK found"
+              echo ""
+              echo "### Last 60 lines of build log:"
+              echo '```'
+              tail -60 build.log
+              echo '```'
+              echo ""
+              echo "### Errors:"
+              echo '```'
+              grep -E "^e:|error:|FAILED|Unresolved|Could not|Exception" build.log | head -30 || echo "No specific errors found"
+              echo '```'
+            fi
+          } > BUILD_RESULT.md
+          
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add BUILD_RESULT.md
+          git diff --staged --quiet || git commit -m "ci: build result [skip ci]"
+          git push
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: |
-            app/build/outputs/apk/debug/*.apk
-            **/*.apk
+          path: "**/*.apk"
           if-no-files-found: warn
           retention-days: 30
-
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build.log
-          retention-days: 7
