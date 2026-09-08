@@ -17,6 +17,7 @@ android {
 
     buildTypes {
         release { minifyEnabled false }
+        debug { minifyEnabled false }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -24,6 +25,13 @@ android {
     }
     kotlinOptions { jvmTarget = '17' }
     buildFeatures { viewBinding true }
+    lint { abortOnError false }
+}
+
+repositories {
+    google()
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
