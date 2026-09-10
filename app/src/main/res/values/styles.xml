@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="DarkDialog" parent="Theme.MaterialComponents.Dialog">
+        <item name="android:background">#1A2535</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="colorAccent">#1DB954</item>
+    </style>
+</resources>
