@@ -1,36 +1,159 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical" android:padding="24dp"
-    android:gravity="center_horizontal" android:background="#121212">
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:text="BT Remote Control" android:textSize="22sp"
-        android:textColor="#FFFFFF" android:textStyle="bold"
-        android:layout_marginTop="32dp" android:layout_marginBottom="8dp"/>
-    <TextView android:id="@+id/tvAccessibility"
-        android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="Checking Accessibility..." android:textSize="13sp"
-        android:padding="8dp" android:layout_marginBottom="16dp"
-        android:background="#1E1E1E" android:textColor="#FFC107"/>
-    <TextView android:id="@+id/tvStatus"
-        android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="Server off" android:textColor="#AAAAAA"
-        android:textSize="14sp" android:layout_marginBottom="16dp"/>
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:orientation="horizontal" android:gravity="center_vertical"
-        android:layout_marginBottom="24dp">
-        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_weight="1" android:text="Use Root"
-            android:textColor="#FFFFFF" android:textSize="16sp"/>
-        <Switch android:id="@+id/switchRoot"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0F1923">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="20dp"
+        android:background="#1A2535">
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@android:drawable/ic_menu_compass"
+            android:tint="#EF4444"
+            android:layout_marginEnd="10dp"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="שליטה מרחוק BT"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"/>
     </LinearLayout>
-    <Button android:id="@+id/btnServer"
-        android:layout_width="match_parent" android:layout_height="56dp"
-        android:text="Start Server (Controlled)" android:textSize="16sp"
-        android:backgroundTint="#F44336" android:layout_marginBottom="16dp"/>
-    <Button android:id="@+id/btnClient"
-        android:layout_width="match_parent" android:layout_height="56dp"
-        android:text="Connect and Control Other Device" android:textSize="16sp"
-        android:backgroundTint="#2196F3"/>
+
+    <!-- Accessibility card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_margin="16dp"
+        android:padding="14dp"
+        android:background="@drawable/card_bg">
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@android:drawable/ic_menu_help"
+            android:tint="#FFC107"
+            android:layout_marginEnd="10dp"/>
+        <TextView
+            android:id="@+id/tvAccessibility"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="שירות נגישות — לחץ לבדיקה"
+            android:textSize="13sp"
+            android:textColor="#FFC107"/>
+    </LinearLayout>
+
+    <!-- Root card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="12dp"
+        android:padding="14dp"
+        android:background="@drawable/card_bg">
+        <TextView
+            android:id="@+id/tvRootStatus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="מצב Root"
+            android:textSize="14sp"
+            android:textColor="#CCCCCC"/>
+        <Switch
+            android:id="@+id/switchRoot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Root"
+            android:textColor="#FFFFFF"
+            android:thumbTint="#EF4444"
+            android:trackTint="#7F1D1D"/>
+    </LinearLayout>
+
+    <!-- Status -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="12dp">
+        <View
+            android:id="@+id/statusDot"
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:background="@drawable/dot_red"
+            android:layout_marginEnd="8dp"/>
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="שרת כבוי"
+            android:textColor="#AAAAAA"
+            android:textSize="14sp"/>
+    </LinearLayout>
+
+    <!-- Buttons -->
+    <Button
+        android:id="@+id/btnServer"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="12dp"
+        android:text="הפעל שרת (מצב נשלט)"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:backgroundTint="#EF4444"
+        android:textColor="#FFFFFF"/>
+
+    <Button
+        android:id="@+id/btnClient"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:text="התחבר ושלוט במכשיר אחר"
+        android:textSize="16sp"
+        android:backgroundTint="#2563EB"
+        android:textColor="#FFFFFF"/>
+
+    <!-- Info -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_margin="16dp"
+        android:padding="14dp"
+        android:background="@drawable/card_bg">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="הוראות:"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:layout_marginBottom="6dp"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="מכשיר נשלט: הפעל שרת → בחר חיבור → אשר הרשאות\nמכשיר שולט: לחץ התחבר → בחר מכשיר → שלוט מהמסך"
+            android:textColor="#AAAAAA"
+            android:textSize="13sp"
+            android:lineSpacingExtra="4dp"/>
+    </LinearLayout>
+
 </LinearLayout>
