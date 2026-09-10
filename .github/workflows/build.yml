@@ -13,51 +13,42 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-
       - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-
       - name: Install SDK
         run: |
           sdkmanager --install "platforms;android-33" "build-tools;33.0.2"
           yes | sdkmanager --licenses || true
           echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
-
       - name: Build APK
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug 2>&1 | tee build.log
-
-      - name: Verify APK
-        run: |
-          APK=$(find . -name "*.apk" | head -1)
-          echo "APK_PATH=$APK" >> $GITHUB_ENV
-          echo "APK found: $APK"
-          ls -lh "$APK"
-
-      - name: Create GitHub Release with APK
+      - name: Release APK
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          APK_PATH=$(find . -name "app-debug.apk" | head -1)
+          if [ -z "$APK_PATH" ]; then
+            echo "APK not found! Build log:"
+            tail -50 build.log
+            exit 1
+          fi
+          echo "Found APK: $APK_PATH ($(du -h $APK_PATH | cut -f1))"
           TAG="v1.0-build-${{ github.run_number }}"
-          APK_PATH="${{ env.APK_PATH }}"
-          APK_NAME=$(basename "$APK_PATH")
-          
-          # יצירת release
           gh release create "$TAG" \
-            --title "Build #${{ github.run_number }}" \
+            --title "גרסה ${{ github.run_number }}" \
             --notes "APK מוכן להורדה" \
-            "$APK_PATH#$APK_NAME" \
-            || echo "Release creation had issues"
-
-      - name: Upload artifact backup
+            "$APK_PATH#app-debug.apk"
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: app-debug-apk
           path: "**/*.apk"
+          if-no-files-found: warn
           retention-days: 30
