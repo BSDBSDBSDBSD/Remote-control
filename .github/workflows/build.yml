@@ -8,6 +8,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,42 +21,46 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
+      - name: Install Android SDK via apt
         run: |
-          mkdir -p $HOME/android-sdk/cmdline-tools
-          curl -s -o /tmp/cmdtools.zip "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
-          unzip -q /tmp/cmdtools.zip -d /tmp/cmdtools
-          mv /tmp/cmdtools/cmdline-tools $HOME/android-sdk/cmdline-tools/latest
-          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
-          yes | sdkmanager --sdk_root=$HOME/android-sdk --licenses || true
-          sdkmanager --sdk_root=$HOME/android-sdk "platforms;android-33" "build-tools;33.0.2" "platform-tools"
-          echo "sdk.dir=$HOME/android-sdk" > local.properties
+          sudo apt-get update -qq
+          sudo apt-get install -y wget unzip
+          # Android SDK כבר מותקן בחלקו ב-ubuntu-latest
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          ls /usr/local/lib/android/sdk/ 2>/dev/null || echo "SDK not pre-installed"
+          # שימוש ב-sdkmanager הקיים
+          SDKMANAGER=$(find /usr/local/lib/android -name "sdkmanager" 2>/dev/null | head -1)
+          echo "sdkmanager found: $SDKMANAGER"
+          if [ -n "$SDKMANAGER" ]; then
+            yes | "$SDKMANAGER" --licenses || true
+            "$SDKMANAGER" "platforms;android-33" "build-tools;33.0.2" || true
+          fi
+          echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
 
       - name: Build APK
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug 2>&1 | tee build.log || true
+          ./gradlew assembleDebug --stacktrace 2>&1 | tee build.log || true
 
       - name: Release APK
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           APK=$(find . -name "app-debug.apk" 2>/dev/null | head -1)
-          [ -z "$APK" ] && echo "❌ APK not found" && tail -30 build.log && exit 1
-          echo "✅ APK: $APK ($(du -h $APK | cut -f1))"
+          if [ -z "$APK" ]; then
+            echo "❌ APK not found. Last 40 lines:"
+            tail -40 build.log
+            exit 1
+          fi
+          echo "✅ APK found: $APK"
           TAG="v1.0-latest"
-          # מחיקת release ישן אם קיים
-          REL_ID=$(gh release view "$TAG" --json id -q '.id' 2>/dev/null || echo "")
-          [ -n "$REL_ID" ] && gh release delete "$TAG" --yes 2>/dev/null || true
+          gh release delete "$TAG" --yes 2>/dev/null || true
           git push --delete origin "$TAG" 2>/dev/null || true
-          sleep 5
+          sleep 3
           gh release create "$TAG" \
             --title "גרסה עדכנית" \
             --notes "$(date '+%d/%m/%Y %H:%M')" \
             "$APK#app-debug.apk"
-          echo "✅ Release created"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
