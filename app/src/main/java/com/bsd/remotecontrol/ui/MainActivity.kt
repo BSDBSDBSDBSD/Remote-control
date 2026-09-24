@@ -64,7 +64,11 @@ class MainActivity : AppCompatActivity() {
         requestPermissions()
 
         btnServer.setOnClickListener {
-            if (ScreenShareService.isRunning) stopServer() else showServerOptions()
+            try {
+                if (ScreenShareService.isRunning) stopServer() else startServerFlow()
+            } catch (e: Exception) {
+                Toast.makeText(this, "שגיאה: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
 
         btnClient.setOnClickListener {
@@ -112,23 +116,15 @@ class MainActivity : AppCompatActivity() {
         } catch (_: Exception) {}
     }
 
-    private fun showServerOptions() {
-        try {
-            val options = arrayOf("Bluetooth (ללא אינטרנט)", "Wi-Fi Direct (מהיר יותר)")
-            AlertDialog.Builder(this)
-                .setTitle("בחר סוג חיבור")
-                .setItems(options) { _, which ->
-                    connectionType = if (which == 0) "bluetooth" else "wifi"
-                    if (switchRoot.isChecked) {
-                        startServer(null, -1)
-                    } else {
-                        requestScreenCapture()
-                    }
-                }
-                .show()
-        } catch (e: Exception) {
-            requestScreenCapture()
-        }
+    /**
+     * Starts the server. It always listens on BOTH Bluetooth and WiFi at once (and hosts a
+     * direct Wi-Fi group), so the user does NOT choose the transport here — the transport is
+     * chosen on the controlling phone when picking how to connect. With root, no screen
+     * capture is needed; otherwise we ask for screen-capture consent first.
+     */
+    private fun startServerFlow() {
+        connectionType = "both"
+        if (switchRoot.isChecked) startServer(null, -1) else requestScreenCapture()
     }
 
     private fun requestScreenCapture() {
@@ -146,7 +142,9 @@ class MainActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == PROJ_REQ) {
             if (resultCode == Activity.RESULT_OK && data != null) {
-                startServer(data, resultCode)
+                try { startServer(data, resultCode) } catch (e: Exception) {
+                    Toast.makeText(this, "שגיאה בהפעלת השרת: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             } else {
                 Toast.makeText(this, "נדרש אישור צילום מסך", Toast.LENGTH_SHORT).show()
             }
@@ -185,7 +183,7 @@ class MainActivity : AppCompatActivity() {
         btnServer.backgroundTintList = getColorStateList(
             if (running) android.R.color.holo_green_dark else R.color.red_primary
         )
-        tvStatus.text = if (running) "⬤ שרת פעיל [$connectionType]" else "שרת כבוי"
+        tvStatus.text = if (running) "⬤ שרת פעיל · Bluetooth ו-WiFi" else "שרת כבוי"
         statusDot.setBackgroundResource(if (running) R.drawable.dot_green else R.drawable.dot_red)
     }
 
@@ -207,11 +205,14 @@ class MainActivity : AppCompatActivity() {
     private fun requestPermissions() {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val perms = arrayOf(
+                val perms = mutableListOf(
                     Manifest.permission.BLUETOOTH_CONNECT,
                     Manifest.permission.BLUETOOTH_SCAN,
                     Manifest.permission.BLUETOOTH_ADVERTISE
                 )
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    perms.add(Manifest.permission.NEARBY_WIFI_DEVICES)
+                }
                 val denied = perms.filter {
                     ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
                 }
