@@ -1,74 +1,43 @@
 name: Build APK
+
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
-permissions:
-  contents: write
+  pull_request:
+    branches: [ main ]
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
 
-      - uses: actions/setup-java@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        run: |
-          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
-          SDKMANAGER=$(find /usr/local/lib/android -name "sdkmanager" 2>/dev/null | head -1)
-          if [ -n "$SDKMANAGER" ]; then
-            yes | "$SDKMANAGER" --licenses 2>/dev/null || true
-            "$SDKMANAGER" "platforms;android-33" "build-tools;33.0.2" 2>/dev/null || true
-          fi
-          echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
-      - name: Build APK
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace 2>&1 | tee build.log || true
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
 
-      - name: Release APK
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: remote-control-debug
+          path: app/build/outputs/apk/debug/*.apk
+
+      - name: Create Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Remote Control v${{ github.run_number }}
+          files: app/build/outputs/apk/debug/*.apk
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          APK=$(find . -name "app-debug.apk" 2>/dev/null | head -1)
-          if [ -z "$APK" ]; then
-            echo "❌ APK not found — last 50 lines of build log:"
-            tail -50 build.log
-            exit 1
-          fi
-          echo "✅ APK: $APK"
-          RUN_NUM="${{ github.run_number }}"
-          TAG="v1.0-build-${RUN_NUM}"
-          gh release create "$TAG" \
-            --title "Build #${RUN_NUM}" \
-            --notes "$(date '+%d/%m/%Y %H:%M') — build ${RUN_NUM}" \
-            "$APK#app-debug.apk"
-          # Also update the "latest" pointer
-          gh release delete "latest-apk" --yes 2>/dev/null || true
-          git tag -d "latest-apk" 2>/dev/null || true
-          git push origin :refs/tags/latest-apk 2>/dev/null || true
-          sleep 2
-          gh release create "latest-apk" \
-            --title "Latest APK" \
-            --notes "Build #${RUN_NUM} — $(date '+%d/%m/%Y %H:%M')" \
-            --latest \
-            "$APK#app-debug.apk" || true
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: app-debug-apk-${{ github.run_number }}
-          path: "**/*.apk"
-          if-no-files-found: warn
-          retention-days: 30
