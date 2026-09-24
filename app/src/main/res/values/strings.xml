@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">BT Remote</string>
-    <string name="accessibility_description">Allows remote control of device over Bluetooth without root</string>
+    <string name="app_name">שליטה מרחוק</string>
+    <string name="accessibility_description">מאפשר שליטה מרחוק במכשיר דרך Bluetooth או WiFi, ללא root</string>
 </resources>
