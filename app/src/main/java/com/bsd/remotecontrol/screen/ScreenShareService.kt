@@ -71,12 +71,19 @@ class ScreenShareService : Service() {
                 connectionType = intent.getStringExtra("connection_type") ?: "bluetooth"
                 val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
                 val resultData = intent.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
+                val hasProjection = resultCode != -1 && resultData != null
 
-                // Start foreground with the declared type; a failure here must not crash the app.
+                // Start foreground with the RIGHT type: mediaProjection only when we actually
+                // have screen-capture consent (otherwise Android 14 rejects that type and the
+                // app would crash); connectedDevice for the root path (no screen capture).
                 val notif = buildNotification("ממתין לחיבור...")
                 try {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        startForeground(NOTIF_ID, notif, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+                        val type = if (hasProjection)
+                            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                        else
+                            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+                        startForeground(NOTIF_ID, notif, type)
                     } else {
                         startForeground(NOTIF_ID, notif)
                     }
@@ -88,17 +95,16 @@ class ScreenShareService : Service() {
                     }
                 }
 
-                if (resultCode != -1 && resultData != null) {
-                    setupMediaProjection(resultCode, resultData)
+                if (hasProjection) {
+                    setupMediaProjection(resultCode, resultData!!)
                 }
 
-                // Always start both servers — client picks one
+                // Always listen on BOTH transports; the controlling phone picks one.
                 startBluetoothServer()
                 startWifiTcpServer()
-                // For direct Wi-Fi (no router), this device becomes the Wi-Fi Direct host
-                // so the controlling phone can find it and reach the TCP server at
-                // 192.168.49.1 without both being on the same network.
-                if (connectionType == "wifi") startWifiDirectHost()
+                // Host a direct Wi-Fi group so the other phone can find and reach this one
+                // with no router and no internet.
+                startWifiDirectHost()
                 isRunning = true
             }
             ACTION_STOP -> {
@@ -123,6 +129,12 @@ class ScreenShareService : Service() {
         try {
             val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
             mediaProjection = mpm.getMediaProjection(resultCode, data)
+            // Android 14+ requires a registered callback before createVirtualDisplay.
+            mediaProjection?.registerCallback(object : MediaProjection.Callback() {
+                override fun onStop() {
+                    try { virtualDisplay?.release() } catch (_: Exception) {}
+                }
+            }, Handler(Looper.getMainLooper()))
             imageReader = ImageReader.newInstance(screenWidth, screenHeight, PixelFormat.RGBA_8888, 2)
             virtualDisplay = mediaProjection?.createVirtualDisplay(
                 "BTRemoteCapture",
