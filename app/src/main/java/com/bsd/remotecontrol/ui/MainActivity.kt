@@ -43,7 +43,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.bsd.remotecontrol.util.CrashLog.install(this)
         setContentView(R.layout.activity_main_remote)
+
+        com.bsd.remotecontrol.util.CrashLog.read(this)?.let { showLastCrash(it) }
 
         btnServer            = findViewById(R.id.btnServer)
         btnClient            = findViewById(R.id.btnClient)
@@ -91,6 +94,22 @@ class MainActivity : AppCompatActivity() {
         tvAccessibility.setOnClickListener {
             btnAccessibilityOpen.performClick()
         }
+    }
+
+    private fun showLastCrash(text: String) {
+        com.bsd.remotecontrol.util.CrashLog.clear(this)
+        try {
+            AlertDialog.Builder(this)
+                .setTitle("האפליקציה נסגרה בגלל שגיאה")
+                .setMessage(text.take(4000))
+                .setPositiveButton("העתק") { _, _ ->
+                    val cm = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("crash", text))
+                    Toast.makeText(this, "הועתק", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("סגור", null)
+                .show()
+        } catch (_: Exception) {}
     }
 
     private fun showServerOptions() {

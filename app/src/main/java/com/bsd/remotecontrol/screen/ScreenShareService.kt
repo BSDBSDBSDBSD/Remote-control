@@ -55,6 +55,7 @@ class ScreenShareService : Service() {
     private var useRoot = false
     private var streaming = false
     private var connectionType = "bluetooth"
+    private var wifiDirect: com.bsd.remotecontrol.wifi.WifiDirectManager? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -71,7 +72,21 @@ class ScreenShareService : Service() {
                 val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
                 val resultData = intent.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
 
-                startForeground(NOTIF_ID, buildNotification("ממתין לחיבור..."))
+                // Start foreground with the declared type; a failure here must not crash the app.
+                val notif = buildNotification("ממתין לחיבור...")
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        startForeground(NOTIF_ID, notif, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+                    } else {
+                        startForeground(NOTIF_ID, notif)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "startForeground failed", e)
+                    try { startForeground(NOTIF_ID, notif) } catch (e2: Exception) {
+                        Log.e(TAG, "plain startForeground failed too", e2)
+                        stopSelf(); isRunning = false; return START_NOT_STICKY
+                    }
+                }
 
                 if (resultCode != -1 && resultData != null) {
                     setupMediaProjection(resultCode, resultData)
@@ -80,6 +95,10 @@ class ScreenShareService : Service() {
                 // Always start both servers — client picks one
                 startBluetoothServer()
                 startWifiTcpServer()
+                // For direct Wi-Fi (no router), this device becomes the Wi-Fi Direct host
+                // so the controlling phone can find it and reach the TCP server at
+                // 192.168.49.1 without both being on the same network.
+                if (connectionType == "wifi") startWifiDirectHost()
                 isRunning = true
             }
             ACTION_STOP -> {
@@ -154,6 +173,21 @@ class ScreenShareService : Service() {
             } catch (e: Exception) {
                 Log.e(TAG, "TCP Server error: ${e.message}")
             }
+        }
+    }
+
+    // ---- Wi-Fi Direct host (direct connection, no router) ----
+    private fun startWifiDirectHost() {
+        try {
+            val wd = com.bsd.remotecontrol.wifi.WifiDirectManager(this)
+            wifiDirect = wd
+            wd.register()
+            wd.createGroup { ok, err ->
+                if (ok) updateNotification("שרת WiFi ישיר פעיל — התחבר מהמכשיר השני")
+                else updateNotification("WiFi ישיר נכשל: $err")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Wi-Fi Direct host failed: ${e.message}")
         }
     }
 
@@ -329,6 +363,9 @@ class ScreenShareService : Service() {
     private fun stopEverything() {
         streaming = false
         scope.cancel()
+        try { wifiDirect?.disconnect() } catch (_: Exception) {}
+        try { wifiDirect?.unregister() } catch (_: Exception) {}
+        wifiDirect = null
         try { btServerSocket?.close() } catch (_: Exception) {}
         try { tcpServerSocket?.close() } catch (_: Exception) {}
         try { virtualDisplay?.release() } catch (_: Exception) {}
