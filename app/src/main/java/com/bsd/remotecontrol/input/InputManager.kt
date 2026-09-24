@@ -11,8 +11,22 @@ object InputManager {
     var isRootAvailable: Boolean = false
         private set
 
+    @Volatile private var initialized = false
+
+    /**
+     * Safe to call more than once (e.g. when the service is recreated). The libsu default
+     * builder may only be set once — a second call throws "The main shell was already
+     * created". Guard it and swallow that error so the service never crashes on start.
+     */
+    @Synchronized
     fun init() {
-        Shell.setDefaultBuilder(Shell.Builder.create().setTimeout(10))
+        if (initialized) return
+        initialized = true
+        try {
+            Shell.setDefaultBuilder(Shell.Builder.create().setTimeout(10))
+        } catch (e: Exception) {
+            // Builder already set — fine.
+        }
         isRootAvailable = try { Shell.getShell().isRoot } catch (e: Exception) { false }
     }
 

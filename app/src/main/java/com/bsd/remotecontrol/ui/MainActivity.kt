@@ -83,6 +83,9 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
 
+        findViewById<Button>(R.id.btnEnableBt).setOnClickListener { enableBluetoothDiscoverable() }
+        findViewById<Button>(R.id.btnEnableWifi).setOnClickListener { openWifiEnable() }
+
         // When root is toggled, hide/show accessibility section
         switchRoot.setOnCheckedChangeListener { _, _ ->
             updateAccessibilityStatus()
@@ -122,6 +125,35 @@ class MainActivity : AppCompatActivity() {
      * chosen on the controlling phone when picking how to connect. With root, no screen
      * capture is needed; otherwise we ask for screen-capture consent first.
      */
+    /** Turns Bluetooth on (if off) and asks to make the device discoverable for 5 minutes. */
+    private fun enableBluetoothDiscoverable() {
+        try {
+            val adapter = BluetoothAdapter.getDefaultAdapter()
+            if (adapter == null) {
+                Toast.makeText(this, "אין Bluetooth במכשיר", Toast.LENGTH_SHORT).show(); return
+            }
+            val i = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE)
+                .putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+            startActivity(i) // this dialog also turns Bluetooth on if it is off
+        } catch (e: Exception) {
+            Toast.makeText(this, "צריך לאשר הרשאות Bluetooth", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /** Opens the WiFi enable panel (Android does not allow toggling WiFi silently). */
+    private fun openWifiEnable() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startActivity(Intent(Settings.Panel.ACTION_WIFI))
+            } else {
+                @Suppress("DEPRECATION")
+                startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+            }
+        } catch (e: Exception) {
+            try { startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS)) } catch (_: Exception) {}
+        }
+    }
+
     private fun startServerFlow() {
         connectionType = "both"
         if (switchRoot.isChecked) startServer(null, -1) else requestScreenCapture()
