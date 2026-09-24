@@ -156,6 +156,25 @@ class MainActivity : AppCompatActivity() {
 
     private fun startServerFlow() {
         connectionType = "both"
+        // Without root, remote taps/gestures are injected via the Accessibility service.
+        // If it isn't enabled, nothing on the remote screen will respond — so require it first.
+        if (!switchRoot.isChecked && !RemoteAccessibilityService.isEnabled) {
+            AlertDialog.Builder(this)
+                .setTitle("צריך להפעיל שירות נגישות")
+                .setMessage("כדי שאפשר יהיה ללחוץ ולשלוט במכשיר הזה מרחוק (ללא Root), צריך להפעיל את שירות הנגישות \"שליטה מרחוק\".\n\nבלעדיו רואים את המסך אבל הלחיצות לא עובדות.")
+                .setPositiveButton("פתח הגדרות נגישות") { _, _ ->
+                    try {
+                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                        Toast.makeText(this, "מצא \"שליטה מרחוק\" ברשימה והפעל אותו, ואז חזור ולחץ \"הפעל שרת\"", Toast.LENGTH_LONG).show()
+                    } catch (_: Exception) {}
+                }
+                .setNeutralButton("המשך בכל זאת (רק צפייה)") { _, _ ->
+                    if (switchRoot.isChecked) startServer(null, -1) else requestScreenCapture()
+                }
+                .setNegativeButton("ביטול", null)
+                .show()
+            return
+        }
         if (switchRoot.isChecked) startServer(null, -1) else requestScreenCapture()
     }
 

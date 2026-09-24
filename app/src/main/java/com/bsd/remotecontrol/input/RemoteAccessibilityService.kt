@@ -5,6 +5,8 @@ import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -14,6 +16,13 @@ class RemoteAccessibilityService : AccessibilityService() {
     companion object {
         var instance: RemoteAccessibilityService? = null
         var isEnabled = false
+    }
+
+    private val main = Handler(Looper.getMainLooper())
+
+    /** Gestures must be dispatched from the main thread; commands arrive on a background thread. */
+    private fun dispatchOnMain(gesture: GestureDescription) {
+        main.post { try { dispatchGesture(gesture, null, null) } catch (_: Exception) {} }
     }
 
     override fun onServiceConnected() {
@@ -35,8 +44,7 @@ class RemoteAccessibilityService : AccessibilityService() {
     fun performTap(x: Int, y: Int) {
         val path = Path().apply { moveTo(x.toFloat(), y.toFloat()) }
         val stroke = GestureDescription.StrokeDescription(path, 0, 50)
-        val gesture = GestureDescription.Builder().addStroke(stroke).build()
-        dispatchGesture(gesture, null, null)
+        dispatchOnMain(GestureDescription.Builder().addStroke(stroke).build())
     }
 
     // -------- SWIPE --------
@@ -46,21 +54,19 @@ class RemoteAccessibilityService : AccessibilityService() {
             lineTo(x2.toFloat(), y2.toFloat())
         }
         val stroke = GestureDescription.StrokeDescription(path, 0, duration)
-        val gesture = GestureDescription.Builder().addStroke(stroke).build()
-        dispatchGesture(gesture, null, null)
+        dispatchOnMain(GestureDescription.Builder().addStroke(stroke).build())
     }
 
     // -------- GLOBAL ACTIONS --------
-    fun performBack()    = performGlobalAction(GLOBAL_ACTION_BACK)
-    fun performHome()    = performGlobalAction(GLOBAL_ACTION_HOME)
-    fun performRecents() = performGlobalAction(GLOBAL_ACTION_RECENTS)
+    fun performBack()    { main.post { try { performGlobalAction(GLOBAL_ACTION_BACK) } catch (_: Exception) {} } }
+    fun performHome()    { main.post { try { performGlobalAction(GLOBAL_ACTION_HOME) } catch (_: Exception) {} } }
+    fun performRecents() { main.post { try { performGlobalAction(GLOBAL_ACTION_RECENTS) } catch (_: Exception) {} } }
 
     // -------- LONG PRESS --------
     fun performLongPress(x: Int, y: Int) {
         val path = Path().apply { moveTo(x.toFloat(), y.toFloat()) }
         val stroke = GestureDescription.StrokeDescription(path, 0, 800)
-        val gesture = GestureDescription.Builder().addStroke(stroke).build()
-        dispatchGesture(gesture, null, null)
+        dispatchOnMain(GestureDescription.Builder().addStroke(stroke).build())
     }
 
     // -------- KEY EVENT (root less approach via AccessibilityService) --------
