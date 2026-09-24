@@ -21,19 +21,13 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Install Android SDK via apt
+      - name: Setup Android SDK
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y wget unzip
-          # Android SDK כבר מותקן בחלקו ב-ubuntu-latest
           echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
-          ls /usr/local/lib/android/sdk/ 2>/dev/null || echo "SDK not pre-installed"
-          # שימוש ב-sdkmanager הקיים
           SDKMANAGER=$(find /usr/local/lib/android -name "sdkmanager" 2>/dev/null | head -1)
-          echo "sdkmanager found: $SDKMANAGER"
           if [ -n "$SDKMANAGER" ]; then
-            yes | "$SDKMANAGER" --licenses || true
-            "$SDKMANAGER" "platforms;android-33" "build-tools;33.0.2" || true
+            yes | "$SDKMANAGER" --licenses 2>/dev/null || true
+            "$SDKMANAGER" "platforms;android-33" "build-tools;33.0.2" 2>/dev/null || true
           fi
           echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
 
@@ -48,25 +42,33 @@ jobs:
         run: |
           APK=$(find . -name "app-debug.apk" 2>/dev/null | head -1)
           if [ -z "$APK" ]; then
-            echo "❌ APK not found. Last 40 lines:"
-            tail -40 build.log
+            echo "❌ APK not found — last 50 lines of build log:"
+            tail -50 build.log
             exit 1
           fi
-          echo "✅ APK found: $APK"
-          TAG="v1.0-latest"
-          gh release delete "$TAG" --yes 2>/dev/null || true
-          git push --delete origin "$TAG" 2>/dev/null || true
-          sleep 3
+          echo "✅ APK: $APK"
+          RUN_NUM="${{ github.run_number }}"
+          TAG="v1.0-build-${RUN_NUM}"
           gh release create "$TAG" \
-            --title "גרסה עדכנית" \
-            --notes "$(date '+%d/%m/%Y %H:%M')" \
+            --title "Build #${RUN_NUM}" \
+            --notes "$(date '+%d/%m/%Y %H:%M') — build ${RUN_NUM}" \
             "$APK#app-debug.apk"
+          # Also update the "latest" pointer
+          gh release delete "latest-apk" --yes 2>/dev/null || true
+          git tag -d "latest-apk" 2>/dev/null || true
+          git push origin :refs/tags/latest-apk 2>/dev/null || true
+          sleep 2
+          gh release create "latest-apk" \
+            --title "Latest APK" \
+            --notes "Build #${RUN_NUM} — $(date '+%d/%m/%Y %H:%M')" \
+            --latest \
+            "$APK#app-debug.apk" || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: app-debug-apk
+          name: app-debug-apk-${{ github.run_number }}
           path: "**/*.apk"
           if-no-files-found: warn
           retention-days: 30
