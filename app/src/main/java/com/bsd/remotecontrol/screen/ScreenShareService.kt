@@ -73,15 +73,16 @@ class ScreenShareService : Service() {
                 val resultData = intent.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
 
                 // Start foreground with the declared type; a failure here must not crash the app.
+                val notif = buildNotification("ממתין לחיבור...")
                 try {
-                    androidx.core.app.ServiceCompat.startForeground(
-                        this, NOTIF_ID, buildNotification("ממתין לחיבור..."),
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
-                            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION else 0
-                    )
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        startForeground(NOTIF_ID, notif, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+                    } else {
+                        startForeground(NOTIF_ID, notif)
+                    }
                 } catch (e: Exception) {
                     Log.e(TAG, "startForeground failed", e)
-                    try { startForeground(NOTIF_ID, buildNotification("ממתין לחיבור...")) } catch (e2: Exception) {
+                    try { startForeground(NOTIF_ID, notif) } catch (e2: Exception) {
                         Log.e(TAG, "plain startForeground failed too", e2)
                         stopSelf(); isRunning = false; return START_NOT_STICKY
                     }
