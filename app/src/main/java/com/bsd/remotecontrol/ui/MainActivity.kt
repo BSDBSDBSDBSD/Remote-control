@@ -34,6 +34,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvAccessibility: TextView
     private lateinit var statusDot: View
     private lateinit var tvRootStatus: TextView
+    private lateinit var layoutAccessibility: android.widget.LinearLayout
+    private lateinit var dividerAccessibility: View
 
     private val PROJ_REQ = 200
     private val PERM_REQ = 100
@@ -43,16 +45,18 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main_remote)
 
-        btnServer           = findViewById(R.id.btnServer)
-        btnClient           = findViewById(R.id.btnClient)
-        btnClientWifi       = findViewById(R.id.btnClientWifi)
-        btnSettings         = findViewById(R.id.btnSettings)
-        btnAccessibilityOpen= findViewById(R.id.btnAccessibilityOpen)
-        switchRoot          = findViewById(R.id.switchRoot)
-        tvStatus            = findViewById(R.id.tvStatus)
-        tvAccessibility     = findViewById(R.id.tvAccessibility)
-        statusDot           = findViewById(R.id.statusDot)
-        tvRootStatus        = findViewById(R.id.tvRootStatus)
+        btnServer            = findViewById(R.id.btnServer)
+        btnClient            = findViewById(R.id.btnClient)
+        btnClientWifi        = findViewById(R.id.btnClientWifi)
+        btnSettings          = findViewById(R.id.btnSettings)
+        btnAccessibilityOpen = findViewById(R.id.btnAccessibilityOpen)
+        switchRoot           = findViewById(R.id.switchRoot)
+        tvStatus             = findViewById(R.id.tvStatus)
+        tvAccessibility      = findViewById(R.id.tvAccessibility)
+        statusDot            = findViewById(R.id.statusDot)
+        tvRootStatus         = findViewById(R.id.tvRootStatus)
+        layoutAccessibility  = findViewById(R.id.layoutAccessibility)
+        dividerAccessibility = findViewById(R.id.dividerAccessibility)
 
         requestPermissions()
 
@@ -70,6 +74,11 @@ class MainActivity : AppCompatActivity() {
 
         btnSettings.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
+        // When root is toggled, hide/show accessibility section
+        switchRoot.setOnCheckedChangeListener { _, _ ->
+            updateAccessibilityStatus()
         }
 
         btnAccessibilityOpen.setOnClickListener {
@@ -162,6 +171,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateAccessibilityStatus() {
+        // With root enabled, input injection goes through shell — no Accessibility needed
+        if (switchRoot.isChecked) {
+            layoutAccessibility.visibility = View.GONE
+            dividerAccessibility.visibility = View.GONE
+            return
+        }
+        layoutAccessibility.visibility = View.VISIBLE
+        dividerAccessibility.visibility = View.VISIBLE
         val enabled = RemoteAccessibilityService.isEnabled
         tvAccessibility.text = if (enabled) "✅ שירות נגישות פעיל" else "⚠️ שירות נגישות כבוי"
         tvAccessibility.setTextColor(if (enabled) 0xFF22C55E.toInt() else 0xFFFFC107.toInt())
