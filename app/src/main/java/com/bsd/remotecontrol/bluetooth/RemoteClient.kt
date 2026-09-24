@@ -40,6 +40,12 @@ class RemoteClient {
         private set
     var remoteScreenWidth = 1080
     var remoteScreenHeight = 1920
+    /** Reported by the controlled device: whether it can actually receive control. */
+    var serverIsRoot = false
+        private set
+    var serverAccessibilityOn = false
+        private set
+    val canControl: Boolean get() = serverIsRoot || serverAccessibilityOn
 
     // ---- connection ----
     suspend fun connectWithSocket(socket: TcpSocket): Boolean = withContext(Dispatchers.IO) {
@@ -78,6 +84,8 @@ class RemoteClient {
         if (info != null) {
             remoteScreenWidth  = info.screenWidth.takeIf { it > 0 } ?: remoteScreenWidth
             remoteScreenHeight = info.screenHeight.takeIf { it > 0 } ?: remoteScreenHeight
+            serverIsRoot = info.isRoot
+            serverAccessibilityOn = info.accessibilityOn
         }
     }
 

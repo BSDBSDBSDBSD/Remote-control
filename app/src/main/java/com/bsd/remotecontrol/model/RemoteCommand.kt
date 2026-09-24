@@ -30,7 +30,9 @@ data class RemoteResponse(
     val frameSize: Int = 0,
     val isRoot: Boolean = false,
     val screenWidth: Int = 0,
-    val screenHeight: Int = 0
+    val screenHeight: Int = 0,
+    /** Whether the controlled device's Accessibility service is connected (non-root input). */
+    val accessibilityOn: Boolean = false
 ) {
     fun toJson(): String = Gson().toJson(this)
     companion object {
