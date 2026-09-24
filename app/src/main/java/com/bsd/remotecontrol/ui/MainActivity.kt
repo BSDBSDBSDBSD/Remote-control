@@ -87,7 +87,7 @@ class MainActivity : AppCompatActivity() {
         btnAccessibilityOpen.setOnClickListener {
             try {
                 startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                Toast.makeText(this, "מצא 'BT Remote Control' והפעל אותו", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "מצא \"שליטה מרחוק\" ברשימה והפעל אותו", Toast.LENGTH_LONG).show()
             } catch (e: Exception) { }
         }
 
