@@ -30,58 +30,65 @@ object InputManager {
         isRootAvailable = try { Shell.getShell().isRoot } catch (e: Exception) { false }
     }
 
+    /** True if some input injector is available for the given mode (used to report failures). */
+    fun canInject(useRoot: Boolean): Boolean =
+        (useRoot && isRootAvailable) || RemoteAccessibilityService.instance != null
+
     // -------- TAP --------
-    fun tap(x: Int, y: Int, useRoot: Boolean) {
-        if (useRoot && isRootAvailable) {
-            Shell.cmd("input tap $x $y").exec()
+    fun tap(x: Int, y: Int, useRoot: Boolean): Boolean {
+        return if (useRoot && isRootAvailable) {
+            Shell.cmd("input tap $x $y").exec(); true
         } else {
-            RemoteAccessibilityService.instance?.performTap(x, y)
+            val svc = RemoteAccessibilityService.instance ?: return false
+            svc.performTap(x, y); true
         }
     }
 
     // -------- SWIPE --------
-    fun swipe(x1: Int, y1: Int, x2: Int, y2: Int, useRoot: Boolean) {
-        if (useRoot && isRootAvailable) {
-            Shell.cmd("input swipe $x1 $y1 $x2 $y2 300").exec()
+    fun swipe(x1: Int, y1: Int, x2: Int, y2: Int, useRoot: Boolean): Boolean {
+        return if (useRoot && isRootAvailable) {
+            Shell.cmd("input swipe $x1 $y1 $x2 $y2 300").exec(); true
         } else {
-            RemoteAccessibilityService.instance?.performSwipe(x1, y1, x2, y2)
+            val svc = RemoteAccessibilityService.instance ?: return false
+            svc.performSwipe(x1, y1, x2, y2); true
         }
     }
 
     // -------- KEY --------
-    fun key(keyCode: Int, useRoot: Boolean) {
-        if (useRoot && isRootAvailable) {
-            Shell.cmd("input keyevent $keyCode").exec()
+    fun key(keyCode: Int, useRoot: Boolean): Boolean {
+        return if (useRoot && isRootAvailable) {
+            Shell.cmd("input keyevent $keyCode").exec(); true
         } else {
-            RemoteAccessibilityService.instance?.injectKeyEvent(keyCode)
+            val svc = RemoteAccessibilityService.instance ?: return false
+            svc.injectKeyEvent(keyCode); true
         }
     }
 
     // -------- BACK / HOME / RECENTS --------
-    fun back(useRoot: Boolean) {
-        if (useRoot && isRootAvailable) Shell.cmd("input keyevent 4").exec()
-        else RemoteAccessibilityService.instance?.performBack()
+    fun back(useRoot: Boolean): Boolean {
+        return if (useRoot && isRootAvailable) { Shell.cmd("input keyevent 4").exec(); true }
+        else { val svc = RemoteAccessibilityService.instance ?: return false; svc.performBack(); true }
     }
 
-    fun home(useRoot: Boolean) {
-        if (useRoot && isRootAvailable) Shell.cmd("input keyevent 3").exec()
-        else RemoteAccessibilityService.instance?.performHome()
+    fun home(useRoot: Boolean): Boolean {
+        return if (useRoot && isRootAvailable) { Shell.cmd("input keyevent 3").exec(); true }
+        else { val svc = RemoteAccessibilityService.instance ?: return false; svc.performHome(); true }
     }
 
-    fun recents(useRoot: Boolean) {
-        if (useRoot && isRootAvailable) Shell.cmd("input keyevent 187").exec()
-        else RemoteAccessibilityService.instance?.performRecents()
+    fun recents(useRoot: Boolean): Boolean {
+        return if (useRoot && isRootAvailable) { Shell.cmd("input keyevent 187").exec(); true }
+        else { val svc = RemoteAccessibilityService.instance ?: return false; svc.performRecents(); true }
     }
 
     // -------- VOLUME --------
-    fun volumeUp(useRoot: Boolean) {
-        if (useRoot && isRootAvailable) Shell.cmd("input keyevent 24").exec()
-        else RemoteAccessibilityService.instance?.injectKeyEvent(24)
+    fun volumeUp(useRoot: Boolean): Boolean {
+        return if (useRoot && isRootAvailable) { Shell.cmd("input keyevent 24").exec(); true }
+        else { val svc = RemoteAccessibilityService.instance ?: return false; svc.injectKeyEvent(24); true }
     }
 
-    fun volumeDown(useRoot: Boolean) {
-        if (useRoot && isRootAvailable) Shell.cmd("input keyevent 25").exec()
-        else RemoteAccessibilityService.instance?.injectKeyEvent(25)
+    fun volumeDown(useRoot: Boolean): Boolean {
+        return if (useRoot && isRootAvailable) { Shell.cmd("input keyevent 25").exec(); true }
+        else { val svc = RemoteAccessibilityService.instance ?: return false; svc.injectKeyEvent(25); true }
     }
 
     // -------- LAUNCH APP --------

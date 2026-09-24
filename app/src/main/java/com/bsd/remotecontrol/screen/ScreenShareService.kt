@@ -222,14 +222,14 @@ class ScreenShareService : Service() {
                 val cmd = try { RemoteCommand.fromJson(String(jsonBytes)) } catch (e: Exception) { continue }
 
                 when (cmd.type) {
-                    CommandTypes.TOUCH   -> { InputManager.tap(cmd.x, cmd.y, useRoot); sendOk(output) }
-                    CommandTypes.SWIPE   -> { InputManager.swipe(cmd.x, cmd.y, cmd.x2, cmd.y2, useRoot); sendOk(output) }
-                    CommandTypes.BACK    -> { InputManager.back(useRoot); sendOk(output) }
-                    CommandTypes.HOME    -> { InputManager.home(useRoot); sendOk(output) }
-                    CommandTypes.RECENTS -> { InputManager.recents(useRoot); sendOk(output) }
-                    CommandTypes.VOLUME_UP   -> { InputManager.volumeUp(useRoot); sendOk(output) }
-                    CommandTypes.VOLUME_DOWN -> { InputManager.volumeDown(useRoot); sendOk(output) }
-                    CommandTypes.KEY     -> { InputManager.key(cmd.keyCode, useRoot); sendOk(output) }
+                    CommandTypes.TOUCH   -> { sendInject(output, InputManager.tap(cmd.x, cmd.y, useRoot)) }
+                    CommandTypes.SWIPE   -> { sendInject(output, InputManager.swipe(cmd.x, cmd.y, cmd.x2, cmd.y2, useRoot)) }
+                    CommandTypes.BACK    -> { sendInject(output, InputManager.back(useRoot)) }
+                    CommandTypes.HOME    -> { sendInject(output, InputManager.home(useRoot)) }
+                    CommandTypes.RECENTS -> { sendInject(output, InputManager.recents(useRoot)) }
+                    CommandTypes.VOLUME_UP   -> { sendInject(output, InputManager.volumeUp(useRoot)) }
+                    CommandTypes.VOLUME_DOWN -> { sendInject(output, InputManager.volumeDown(useRoot)) }
+                    CommandTypes.KEY     -> { sendInject(output, InputManager.key(cmd.keyCode, useRoot)) }
 
                     CommandTypes.APP_LIST -> {
                         val apps = InputManager.getInstalledApps(this@ScreenShareService)
@@ -252,7 +252,8 @@ class ScreenShareService : Service() {
                             success = true,
                             screenWidth = screenWidth,
                             screenHeight = screenHeight,
-                            isRoot = InputManager.isRootAvailable
+                            isRoot = useRoot && InputManager.isRootAvailable,
+                            accessibilityOn = com.bsd.remotecontrol.input.RemoteAccessibilityService.isEnabled
                         ).toJson())
                     }
                     CommandTypes.ROOT_STATUS -> {
@@ -363,6 +364,15 @@ class ScreenShareService : Service() {
 
     private fun sendOk(output: DataOutputStream) {
         sendJson(output, RemoteResponse(success = true).toJson())
+    }
+
+    /** Reports back whether the input was actually injected, with a clear reason if not. */
+    private fun sendInject(output: DataOutputStream, injected: Boolean) {
+        if (injected) sendOk(output)
+        else sendJson(output, RemoteResponse(
+            success = false,
+            error = if (useRoot) "אין הרשאת Root במכשיר הנשלט" else "שירות הנגישות כבוי במכשיר הנשלט"
+        ).toJson())
     }
 
     private fun sendJson(output: DataOutputStream, json: String) {

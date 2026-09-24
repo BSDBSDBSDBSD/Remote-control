@@ -79,6 +79,10 @@ class RemoteViewActivity : AppCompatActivity() {
         remoteW = client?.remoteScreenWidth ?: 1080
         remoteH = client?.remoteScreenHeight ?: 1920
         tvStatus.text = "📱 ${RemoteClientHolder.remoteDeviceName}  ${remoteW}×${remoteH}"
+        if (client?.canControl == false) {
+            tvStatus.text = "⚠️ המכשיר הנשלט לא מקבל שליטה — הפעל בו Root או שירות נגישות"
+            tvStatus.setTextColor(0xFFFBBF24.toInt())
+        }
         tvFps.visibility = if (SettingsActivity.getShowFps(this)) View.VISIBLE else View.GONE
 
         imageView.scaleType = ImageView.ScaleType.MATRIX
@@ -149,10 +153,10 @@ class RemoteViewActivity : AppCompatActivity() {
 
         val start = viewToRemote(touchStartX, touchStartY) ?: return
         if (dist < 25 && dt < 400) {
-            safe { client?.tap(start.first, start.second, useRoot) }
+            control { client?.tap(start.first, start.second, useRoot) }
         } else if (dist >= 25) {
             val end = viewToRemote(event.x, event.y) ?: return
-            safe { client?.swipe(start.first, start.second, end.first, end.second, useRoot) }
+            control { client?.swipe(start.first, start.second, end.first, end.second, useRoot) }
         }
     }
 
@@ -199,12 +203,23 @@ class RemoteViewActivity : AppCompatActivity() {
         } catch (_: Exception) { }
     }
 
+    /** Runs an input command and, if the controlled device reports it could not inject, shows why. */
+    private fun control(block: suspend () -> com.bsd.remotecontrol.model.RemoteResponse?) {
+        if (isDestroyed || isFinishing) return
+        lifecycleScope.launch(Dispatchers.IO) {
+            val resp = try { block() } catch (e: Exception) { null }
+            if (resp != null && !resp.success && resp.error.isNotBlank()) {
+                withContext(Dispatchers.Main) { if (!isDestroyed) tvStatus.text = "⚠️ ${resp.error}" }
+            }
+        }
+    }
+
     private fun setupButtons() {
-        btnBack.setOnClickListener    { safe { client?.back(useRoot) } }
-        btnHome.setOnClickListener    { safe { client?.home(useRoot) } }
-        btnRecents.setOnClickListener { safe { client?.recents(useRoot) } }
-        btnVolUp.setOnClickListener   { safe { client?.volumeUp(useRoot) } }
-        btnVolDown.setOnClickListener { safe { client?.volumeDown(useRoot) } }
+        btnBack.setOnClickListener    { control { client?.back(useRoot) } }
+        btnHome.setOnClickListener    { control { client?.home(useRoot) } }
+        btnRecents.setOnClickListener { control { client?.recents(useRoot) } }
+        btnVolUp.setOnClickListener   { control { client?.volumeUp(useRoot) } }
+        btnVolDown.setOnClickListener { control { client?.volumeDown(useRoot) } }
 
         btnRoot.setOnClickListener {
             useRoot = !useRoot
