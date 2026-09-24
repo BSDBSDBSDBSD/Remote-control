@@ -16,21 +16,23 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:scaleType="fitCenter"
-            android:background="#111111"/>
+            android:background="#0A0A0A"/>
 
         <ProgressBar
             android:id="@+id/progressBar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"/>
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="#5B8DDB"/>
 
         <!-- Status bar overlay -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:background="#BB000000"
-            android:padding="4dp">
+            android:background="#CC000000"
+            android:padding="5dp"
+            android:gravity="center_vertical">
 
             <TextView
                 android:id="@+id/tvStatus"
@@ -38,9 +40,10 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:textSize="11sp"
-                android:textColor="#CCCCCC"
+                android:textColor="#AAAAAA"
                 android:maxLines="1"
-                android:ellipsize="end"/>
+                android:ellipsize="end"
+                android:paddingStart="4dp"/>
 
             <TextView
                 android:id="@+id/tvFps"
@@ -48,118 +51,140 @@
                 android:layout_height="wrap_content"
                 android:text="0 fps"
                 android:textSize="11sp"
-                android:textColor="#1DB954"
-                android:layout_marginStart="8dp"/>
+                android:textColor="#22C55E"
+                android:layout_marginEnd="6dp"/>
         </LinearLayout>
 
     </FrameLayout>
 
     <!-- Side control panel -->
     <LinearLayout
-        android:layout_width="68dp"
+        android:layout_width="64dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:gravity="center_horizontal"
-        android:background="#1E1E1E"
+        android:background="#111827"
         android:padding="4dp">
 
+        <!-- Volume -->
         <Button
             android:id="@+id/btnVolUp"
-            android:layout_width="60dp"
-            android:layout_height="38dp"
-            android:text="VOL+"
-            android:textSize="9sp"
+            android:layout_width="56dp"
+            android:layout_height="36dp"
+            android:text="▲"
+            android:textSize="14sp"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#333333"
-            android:layout_marginBottom="4dp"
-            android:padding="2dp"/>
+            android:backgroundTint="#1F2937"
+            android:layout_marginBottom="2dp"
+            android:padding="0dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="VOL"
+            android:textSize="8sp"
+            android:textColor="#6B7280"
+            android:layout_marginBottom="2dp"/>
 
         <Button
             android:id="@+id/btnVolDown"
-            android:layout_width="60dp"
-            android:layout_height="38dp"
-            android:text="VOL-"
-            android:textSize="9sp"
+            android:layout_width="56dp"
+            android:layout_height="36dp"
+            android:text="▼"
+            android:textSize="14sp"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#333333"
+            android:backgroundTint="#1F2937"
             android:layout_marginBottom="10dp"
-            android:padding="2dp"/>
+            android:padding="0dp"/>
 
+        <!-- Nav buttons -->
         <Button
             android:id="@+id/btnBack"
-            android:layout_width="60dp"
-            android:layout_height="38dp"
-            android:text="◀ חזור"
-            android:textSize="9sp"
+            android:layout_width="56dp"
+            android:layout_height="36dp"
+            android:text="◀"
+            android:textSize="14sp"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#2A2A2A"
-            android:layout_marginBottom="4dp"
-            android:padding="2dp"/>
+            android:backgroundTint="#1F2937"
+            android:layout_marginBottom="2dp"
+            android:padding="0dp"/>
 
         <Button
             android:id="@+id/btnHome"
-            android:layout_width="60dp"
-            android:layout_height="38dp"
-            android:text="⌂ בית"
-            android:textSize="9sp"
+            android:layout_width="56dp"
+            android:layout_height="36dp"
+            android:text="⌂"
+            android:textSize="14sp"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#2A2A2A"
-            android:layout_marginBottom="4dp"
-            android:padding="2dp"/>
+            android:backgroundTint="#1F2937"
+            android:layout_marginBottom="2dp"
+            android:padding="0dp"/>
 
         <Button
             android:id="@+id/btnRecents"
-            android:layout_width="60dp"
-            android:layout_height="38dp"
-            android:text="⊞ פתוחות"
-            android:textSize="9sp"
+            android:layout_width="56dp"
+            android:layout_height="36dp"
+            android:text="⊞"
+            android:textSize="14sp"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#2A2A2A"
+            android:backgroundTint="#1F2937"
             android:layout_marginBottom="10dp"
-            android:padding="2dp"/>
+            android:padding="0dp"/>
 
+        <!-- Feature buttons -->
         <Button
             android:id="@+id/btnApps"
-            android:layout_width="60dp"
-            android:layout_height="38dp"
-            android:text="📱 אפליק׳"
+            android:layout_width="56dp"
+            android:layout_height="36dp"
+            android:text="Apps"
             android:textSize="9sp"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#1A3A6A"
+            android:backgroundTint="#1D4ED8"
             android:layout_marginBottom="4dp"
-            android:padding="2dp"/>
+            android:padding="0dp"/>
+
+        <Button
+            android:id="@+id/btnClipboard"
+            android:layout_width="56dp"
+            android:layout_height="36dp"
+            android:text="Clip"
+            android:textSize="9sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#0F766E"
+            android:layout_marginBottom="4dp"
+            android:padding="0dp"/>
 
         <Button
             android:id="@+id/btnShell"
-            android:layout_width="60dp"
-            android:layout_height="38dp"
-            android:text="$ Shell"
+            android:layout_width="56dp"
+            android:layout_height="36dp"
+            android:text="Shell"
             android:textSize="9sp"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#3A2A00"
+            android:backgroundTint="#92400E"
             android:layout_marginBottom="4dp"
-            android:padding="2dp"/>
+            android:padding="0dp"/>
 
         <Button
             android:id="@+id/btnRefresh"
-            android:layout_width="60dp"
-            android:layout_height="38dp"
-            android:text="↻ רענן"
-            android:textSize="9sp"
+            android:layout_width="56dp"
+            android:layout_height="36dp"
+            android:text="↻"
+            android:textSize="14sp"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#1A3A1A"
+            android:backgroundTint="#14532D"
             android:layout_marginBottom="4dp"
-            android:padding="2dp"/>
+            android:padding="0dp"/>
 
         <Button
             android:id="@+id/btnRoot"
-            android:layout_width="60dp"
-            android:layout_height="38dp"
+            android:layout_width="56dp"
+            android:layout_height="36dp"
             android:text="Root"
             android:textSize="9sp"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#4A1A00"
-            android:padding="2dp"/>
+            android:backgroundTint="#7F1D1D"
+            android:padding="0dp"/>
 
     </LinearLayout>
 </LinearLayout>

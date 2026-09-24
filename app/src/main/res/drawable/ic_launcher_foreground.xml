@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Background circle -->
+    <path
+        android:pathData="M54,54m-46,0a46,46 0,1 1,92 0a46,46 0,1 1,-92 0"
+        android:fillColor="#1A1A2E"/>
+
+    <!-- Screen / monitor shape -->
+    <path
+        android:pathData="M22,28 Q22,24 26,24 L82,24 Q86,24 86,28 L86,64 Q86,68 82,68 L62,68 L62,72 L70,72 Q71,72 71,73 L71,75 Q71,76 70,76 L38,76 Q37,76 37,75 L37,73 Q37,72 38,72 L46,72 L46,68 L26,68 Q22,68 22,64 Z"
+        android:fillColor="#2563EB"/>
+
+    <!-- Screen inner -->
+    <path
+        android:pathData="M26,30 L82,30 L82,62 L26,62 Z"
+        android:fillColor="#0A0E1A"/>
+
+    <!-- Bluetooth signal waves -->
+    <path
+        android:pathData="M44,38 Q40,42 40,46 Q40,50 44,54"
+        android:strokeColor="#22C55E"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <path
+        android:pathData="M38,33 Q32,39 32,46 Q32,53 38,59"
+        android:strokeColor="#22C55E"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:strokeAlpha="0.6"/>
+
+    <!-- Wifi / signal right -->
+    <path
+        android:pathData="M64,38 Q68,42 68,46 Q68,50 64,54"
+        android:strokeColor="#5B8DDB"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <path
+        android:pathData="M70,33 Q76,39 76,46 Q76,53 70,59"
+        android:strokeColor="#5B8DDB"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:strokeAlpha="0.6"/>
+
+    <!-- Center dot -->
+    <path
+        android:pathData="M54,46m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0"
+        android:fillColor="#FFFFFF"/>
+
+</vector>

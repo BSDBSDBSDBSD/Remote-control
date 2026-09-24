@@ -62,24 +62,20 @@ object InputManager {
     // -------- VOLUME --------
     fun volumeUp(useRoot: Boolean) {
         if (useRoot && isRootAvailable) Shell.cmd("input keyevent 24").exec()
-        else key(24, false)
+        else RemoteAccessibilityService.instance?.injectKeyEvent(24)
     }
 
     fun volumeDown(useRoot: Boolean) {
         if (useRoot && isRootAvailable) Shell.cmd("input keyevent 25").exec()
-        else key(25, false)
+        else RemoteAccessibilityService.instance?.injectKeyEvent(25)
     }
 
     // -------- LAUNCH APP --------
-    fun launchApp(packageName: String, useRoot: Boolean): Boolean {
-        return if (useRoot && isRootAvailable) {
+    // Use launchAppWithContext (requires Context) — this root-only variant is kept as fallback
+    fun launchApp(packageName: String): Boolean {
+        return if (isRootAvailable) {
             Shell.cmd("monkey -p $packageName -c android.intent.category.LAUNCHER 1").exec().isSuccess
-        } else {
-            try {
-                val pm = null // נמסר ב-ScreenShareService
-                Shell.cmd("am start -n $packageName/.MainActivity").exec().isSuccess
-            } catch (e: Exception) { false }
-        }
+        } else false
     }
 
     fun launchAppWithContext(context: Context, packageName: String): Boolean {
@@ -89,7 +85,12 @@ object InputManager {
                 intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(intent)
                 true
-            } else false
+            } else {
+                // Fallback to root am start
+                if (isRootAvailable) {
+                    Shell.cmd("monkey -p $packageName -c android.intent.category.LAUNCHER 1").exec().isSuccess
+                } else false
+            }
         } catch (e: Exception) { false }
     }
 
@@ -97,9 +98,7 @@ object InputManager {
     fun stopApp(packageName: String, useRoot: Boolean): Boolean {
         return if (useRoot && isRootAvailable) {
             Shell.cmd("am force-stop $packageName").exec().isSuccess
-        } else {
-            false // צריך root
-        }
+        } else false
     }
 
     // -------- SHELL COMMAND --------
@@ -109,8 +108,10 @@ object InputManager {
             (result.out + result.err).joinToString("\n")
         } else {
             try {
-                val proc = Runtime.getRuntime().exec(cmd)
-                proc.inputStream.bufferedReader().readText()
+                val proc = Runtime.getRuntime().exec(cmd.split(" ").toTypedArray())
+                proc.inputStream.bufferedReader().readText().ifBlank {
+                    proc.errorStream.bufferedReader().readText()
+                }
             } catch (e: Exception) {
                 "Error: ${e.message}"
             }
@@ -119,28 +120,58 @@ object InputManager {
 
     // -------- APP LIST --------
     fun getInstalledApps(context: Context): List<AppInfo> {
-        val pm = context.packageManager
-        val flags = PackageManager.GET_META_DATA
-        return pm.getInstalledApplications(flags)
-            .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }  // רק אפליקציות משתמש
-            .map { info ->
-                AppInfo(
-                    name = pm.getApplicationLabel(info).toString(),
-                    packageName = info.packageName
-                )
-            }
-            .sortedBy { it.name.lowercase() }
+        return try {
+            val pm = context.packageManager
+            pm.getInstalledApplications(PackageManager.GET_META_DATA)
+                .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }
+                .map { info ->
+                    AppInfo(
+                        name = pm.getApplicationLabel(info).toString(),
+                        packageName = info.packageName
+                    )
+                }
+                .sortedBy { it.name.lowercase() }
+        } catch (e: Exception) { emptyList() }
     }
 
-    // -------- SCREENSHOT (root) --------
+    // -------- SCREENSHOT (root) — fixed: use libsu only --------
     fun takeScreenshotRoot(): ByteArray? {
+        if (!isRootAvailable) return null
         return try {
-            val result = Shell.cmd("screencap -p /sdcard/.btremote_tmp.png && echo OK").exec()
+            val tmpPath = "/data/local/tmp/.btremote_cap.png"
+            val result = Shell.cmd("screencap -p $tmpPath").exec()
             if (!result.isSuccess) return null
-            val proc = Runtime.getRuntime().exec(arrayOf("su", "-c", "cat /sdcard/.btremote_tmp.png"))
-            val bytes = proc.inputStream.readBytes()
-            Shell.cmd("rm /sdcard/.btremote_tmp.png").exec()
-            bytes
+            val catResult = Shell.cmd("cat $tmpPath").exec()
+            Shell.cmd("rm -f $tmpPath").exec()
+            if (catResult.isSuccess) {
+                // cat output via libsu gives lines — reconstruct bytes via direct file read
+                readFileRoot(tmpPath)
+            } else null
         } catch (e: Exception) { null }
+    }
+
+    private fun readFileRoot(path: String): ByteArray? {
+        return try {
+            // Use base64 encode/decode to safely transfer binary via shell
+            val result = Shell.cmd("base64 $path 2>/dev/null || base64 -i $path").exec()
+            if (!result.isSuccess || result.out.isEmpty()) return null
+            val b64 = result.out.joinToString("")
+            android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+        } catch (e: Exception) { null }
+    }
+
+    // -------- CLIPBOARD --------
+    fun getClipboard(context: Context): String {
+        return try {
+            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            cm.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+        } catch (e: Exception) { "" }
+    }
+
+    fun setClipboard(context: Context, text: String) {
+        try {
+            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("remote", text))
+        } catch (e: Exception) { }
     }
 }

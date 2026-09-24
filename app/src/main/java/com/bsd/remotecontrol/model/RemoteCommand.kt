@@ -64,4 +64,6 @@ object CommandTypes {
     const val VOLUME_UP        = "VOLUME_UP"
     const val VOLUME_DOWN      = "VOLUME_DOWN"
     const val POWER            = "POWER"
+    const val CLIPBOARD_GET    = "CLIPBOARD_GET"
+    const val CLIPBOARD_SET    = "CLIPBOARD_SET"
 }

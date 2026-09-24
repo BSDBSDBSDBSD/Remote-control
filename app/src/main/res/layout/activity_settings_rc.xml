@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0A0E1A">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Video Settings Card -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="איכות וידאו"
+            android:textSize="12sp"
+            android:textColor="#5B8DDB"
+            android:textAllCaps="true"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="8dp"
+            android:layout_marginStart="4dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/card_bg"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="איכות JPEG"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp"/>
+                <TextView
+                    android:id="@+id/tvJpegQualityVal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="40%"
+                    android:textColor="#5B8DDB"
+                    android:textSize="15sp"
+                    android:textStyle="bold"/>
+            </LinearLayout>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="נמוך = מהיר יותר על Bluetooth | גבוה = תמונה חדה יותר"
+                android:textColor="#888888"
+                android:textSize="12sp"
+                android:layout_marginBottom="8dp"/>
+            <SeekBar
+                android:id="@+id/seekJpegQuality"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="90"
+                android:progress="40"
+                android:progressTint="#5B8DDB"
+                android:thumbTint="#5B8DDB"/>
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:background="#2A2A3A" android:layout_marginVertical="12dp"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="קצב פריימים"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:layout_marginBottom="8dp"/>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="גבוה יותר = עדכון מהיר | מוגבל על ידי מהירות Bluetooth"
+                android:textColor="#888888"
+                android:textSize="12sp"
+                android:layout_marginBottom="8dp"/>
+            <Spinner
+                android:id="@+id/spinnerFps"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:background="@drawable/card_bg"
+                android:popupBackground="#1A1A2E"/>
+        </LinearLayout>
+
+        <!-- Connection Settings Card -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="חיבור"
+            android:textSize="12sp"
+            android:textColor="#5B8DDB"
+            android:textAllCaps="true"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="8dp"
+            android:layout_marginStart="4dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/card_bg"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="התחבר מחדש אוטומטי"
+                        android:textColor="#FFFFFF"
+                        android:textSize="15sp"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="נסה להתחבר שוב בניתוק"
+                        android:textColor="#888888"
+                        android:textSize="12sp"/>
+                </LinearLayout>
+                <Switch
+                    android:id="@+id/switchAutoReconnect"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:thumbTint="#5B8DDB"
+                    android:trackTint="#2A3A5A"/>
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Display Settings Card -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="תצוגה"
+            android:textSize="12sp"
+            android:textColor="#5B8DDB"
+            android:textAllCaps="true"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="8dp"
+            android:layout_marginStart="4dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/card_bg"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="שמור מסך דלוק"
+                        android:textColor="#FFFFFF"
+                        android:textSize="15sp"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="מניע כיבוי מסך בזמן שליטה"
+                        android:textColor="#888888"
+                        android:textSize="12sp"/>
+                </LinearLayout>
+                <Switch
+                    android:id="@+id/switchKeepScreenOn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:thumbTint="#5B8DDB"
+                    android:trackTint="#2A3A5A"/>
+            </LinearLayout>
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:background="#2A2A3A" android:layout_marginVertical="8dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="הצג FPS"
+                        android:textColor="#FFFFFF"
+                        android:textSize="15sp"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="מד קצב פריימים בשידור"
+                        android:textColor="#888888"
+                        android:textSize="12sp"/>
+                </LinearLayout>
+                <Switch
+                    android:id="@+id/switchShowFps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:thumbTint="#5B8DDB"
+                    android:trackTint="#2A3A5A"/>
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Root Settings Card -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Root"
+            android:textSize="12sp"
+            android:textColor="#5B8DDB"
+            android:textAllCaps="true"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="8dp"
+            android:layout_marginStart="4dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/card_bg"
+            android:padding="16dp"
+            android:layout_marginBottom="32dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="הפעל Root כברירת מחדל"
+                        android:textColor="#FFFFFF"
+                        android:textSize="15sp"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="פקודות root אוטומטיות (דורש root)"
+                        android:textColor="#888888"
+                        android:textSize="12sp"/>
+                </LinearLayout>
+                <Switch
+                    android:id="@+id/switchRootDefault"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:thumbTint="#EF4444"
+                    android:trackTint="#3A1A1A"/>
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

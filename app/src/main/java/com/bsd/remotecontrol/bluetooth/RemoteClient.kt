@@ -140,6 +140,14 @@ class RemoteClient {
         sendCommand(RemoteCommand("STREAM_STOP"))
     }
 
+    suspend fun getClipboard(): String = withContext(Dispatchers.IO) {
+        sendCommand(RemoteCommand("CLIPBOARD_GET"))?.shellOutput ?: ""
+    }
+
+    suspend fun setClipboard(text: String) = withContext(Dispatchers.IO) {
+        sendCommand(RemoteCommand("CLIPBOARD_SET", shellCmd = text))
+    }
+
     // -------- INTERNAL --------
     private fun sendCommand(cmd: RemoteCommand): RemoteResponse? {
         sendRaw(cmd.toJson())

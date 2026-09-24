@@ -1,6 +1,9 @@
 package com.bsd.remotecontrol.ui
 
 import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.graphics.BitmapFactory
 import android.os.*
 import android.view.*
@@ -21,6 +24,7 @@ class RemoteViewActivity : AppCompatActivity() {
     private lateinit var btnRecents: Button
     private lateinit var btnVolUp: Button
     private lateinit var btnVolDown: Button
+    private lateinit var btnRoot: Button
 
     private val client get() = RemoteClientHolder.client
     private var streamJob: Job? = null
@@ -28,18 +32,20 @@ class RemoteViewActivity : AppCompatActivity() {
     private var remoteW = 1080
     private var remoteH = 1920
 
-    // נגיעה
     private var touchStartX = 0f
     private var touchStartY = 0f
     private var touchStartTime = 0L
 
-    // FPS counter
     private var frameCount = 0
     private var lastFpsTime = System.currentTimeMillis()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        // Apply settings
+        if (SettingsActivity.getKeepScreenOn(this)) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
         window.setFlags(
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
             WindowManager.LayoutParams.FLAG_FULLSCREEN
@@ -55,6 +61,7 @@ class RemoteViewActivity : AppCompatActivity() {
         btnRecents  = findViewById(R.id.btnRecents)
         btnVolUp    = findViewById(R.id.btnVolUp)
         btnVolDown  = findViewById(R.id.btnVolDown)
+        btnRoot     = findViewById(R.id.btnRoot)
 
         if (client == null) {
             Toast.makeText(this, "שגיאה: אין חיבור פעיל", Toast.LENGTH_LONG).show()
@@ -62,18 +69,30 @@ class RemoteViewActivity : AppCompatActivity() {
             return
         }
 
+        useRoot = SettingsActivity.getUseRootDefault(this)
+
         remoteW = client?.remoteScreenWidth ?: 1080
         remoteH = client?.remoteScreenHeight ?: 1920
-        tvStatus.text = "📱 ${RemoteClientHolder.remoteDeviceName} | ${remoteW}×${remoteH}"
+        tvStatus.text = "📱 ${RemoteClientHolder.remoteDeviceName}  ${remoteW}×${remoteH}"
 
+        // FPS visibility
+        tvFps.visibility = if (SettingsActivity.getShowFps(this)) View.VISIBLE else View.GONE
+
+        updateRootButton()
         setupTouch()
         setupButtons()
         startStream()
     }
 
+    private fun updateRootButton() {
+        btnRoot.text = if (useRoot) "Root✅" else "Root"
+        btnRoot.backgroundTintList = getColorStateList(
+            if (useRoot) android.R.color.holo_red_light else R.color.red_primary
+        )
+    }
+
     private fun setupTouch() {
         imageView.setOnTouchListener { view, event ->
-            // Guard: view חייב להיות בגודל חוקי
             val vw = view.width
             val vh = view.height
             if (vw <= 0 || vh <= 0) return@setOnTouchListener true
@@ -97,10 +116,8 @@ class RemoteViewActivity : AppCompatActivity() {
                     val startRemY = (touchStartY * scaleY).toInt().coerceIn(0, remoteH - 1)
 
                     if (dist < 25 && dt < 400) {
-                        // Tap פשוט
                         safe { client?.tap(startRemX, startRemY, useRoot) }
                     } else if (dist >= 25) {
-                        // Swipe
                         val endRemX = (event.x * scaleX).toInt().coerceIn(0, remoteW - 1)
                         val endRemY = (event.y * scaleY).toInt().coerceIn(0, remoteH - 1)
                         safe { client?.swipe(startRemX, startRemY, endRemX, endRemY, useRoot) }
@@ -111,7 +128,6 @@ class RemoteViewActivity : AppCompatActivity() {
         }
     }
 
-    // wrapper בטוח לכל coroutine — לא יקרוס גם אם האקטיביטי נסגרה
     private fun safe(block: suspend () -> Unit) {
         if (isDestroyed || isFinishing) return
         try {
@@ -119,16 +135,12 @@ class RemoteViewActivity : AppCompatActivity() {
                 try {
                     if (!isDestroyed) block()
                 } catch (e: Exception) {
-                    if (!isDestroyed) {
-                        runOnUiThread {
-                            tvStatus.text = "שגיאה: ${e.message?.take(40)}"
-                        }
+                    if (!isDestroyed) runOnUiThread {
+                        tvStatus.text = "שגיאה: ${e.message?.take(50)}"
                     }
                 }
             }
-        } catch (e: Exception) {
-            // אל תקרוס
-        }
+        } catch (e: Exception) { }
     }
 
     private fun setupButtons() {
@@ -138,17 +150,16 @@ class RemoteViewActivity : AppCompatActivity() {
         btnVolUp.setOnClickListener   { safe { client?.volumeUp(useRoot) } }
         btnVolDown.setOnClickListener { safe { client?.volumeDown(useRoot) } }
 
+        btnRoot.setOnClickListener {
+            useRoot = !useRoot
+            updateRootButton()
+            Toast.makeText(this, if (useRoot) "Root מופעל" else "Root כבוי", Toast.LENGTH_SHORT).show()
+        }
+
         findViewById<Button>(R.id.btnApps).setOnClickListener    { showAppsList() }
         findViewById<Button>(R.id.btnShell).setOnClickListener   { showShellDialog() }
         findViewById<Button>(R.id.btnRefresh).setOnClickListener { restartStream() }
-
-        // Root toggle
-        val btnRoot = findViewById<Button?>(R.id.btnRoot)
-        btnRoot?.setOnClickListener {
-            useRoot = !useRoot
-            btnRoot.text = if (useRoot) "Root ✅" else "Root"
-            Toast.makeText(this, if (useRoot) "Root מופעל" else "Root כבוי", Toast.LENGTH_SHORT).show()
-        }
+        findViewById<Button>(R.id.btnClipboard).setOnClickListener { showClipboardDialog() }
     }
 
     private fun startStream() {
@@ -160,7 +171,6 @@ class RemoteViewActivity : AppCompatActivity() {
             try {
                 val bmp = BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.size)
                 if (bmp != null && !isDestroyed) {
-                    // FPS
                     frameCount++
                     val now = System.currentTimeMillis()
                     if (now - lastFpsTime >= 1000) {
@@ -176,9 +186,7 @@ class RemoteViewActivity : AppCompatActivity() {
                         }
                     }
                 }
-            } catch (e: Exception) {
-                // לא לקרוס על frame פגום
-            }
+            } catch (e: Exception) { }
         }
     }
 
@@ -199,7 +207,7 @@ class RemoteViewActivity : AppCompatActivity() {
                         Toast.makeText(this, "לא נמצאו אפליקציות", Toast.LENGTH_SHORT).show()
                         return@runOnUiThread
                     }
-                    val names = apps.map { it.name }.toTypedArray()
+                    val names = apps.map { "${it.name}\n${it.packageName}" }.toTypedArray()
                     try {
                         AlertDialog.Builder(this)
                             .setTitle("אפליקציות (${apps.size})")
@@ -214,15 +222,90 @@ class RemoteViewActivity : AppCompatActivity() {
         }
     }
 
+    private fun showClipboardDialog() {
+        if (isDestroyed) return
+        try {
+            val options = arrayOf(
+                "📋  קרא לוח מרחוק (המכשיר הנשלט)",
+                "📤  שלח לוח מקומי (שלי) למרחוק",
+                "⌨️  הזן טקסט ידנית"
+            )
+            AlertDialog.Builder(this)
+                .setTitle("לוח הגזירים")
+                .setItems(options) { _, which ->
+                    when (which) {
+                        0 -> {
+                            safe {
+                                val text = client?.getClipboard() ?: ""
+                                if (!isDestroyed) runOnUiThread {
+                                    if (text.isBlank()) {
+                                        Toast.makeText(this, "לוח המרחוק ריק", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        // Copy to local clipboard
+                                        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        cm.setPrimaryClip(ClipData.newPlainText("remote", text))
+                                        try {
+                                            AlertDialog.Builder(this)
+                                                .setTitle("לוח מרחוק")
+                                                .setMessage(text.take(1000))
+                                                .setPositiveButton("העתק ✓") { _, _ -> }
+                                                .show()
+                                        } catch (e: Exception) {}
+                                    }
+                                }
+                            }
+                        }
+                        1 -> {
+                            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            val localText = cm.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+                            if (localText.isBlank()) {
+                                Toast.makeText(this, "לוח מקומי ריק", Toast.LENGTH_SHORT).show()
+                            } else {
+                                safe { client?.setClipboard(localText) }
+                                Toast.makeText(this, "נשלח למכשיר המרוחק ✓", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        2 -> showTextInputDialog()
+                    }
+                }
+                .show()
+        } catch (e: Exception) { }
+    }
+
+    private fun showTextInputDialog() {
+        if (isDestroyed) return
+        try {
+            val input = EditText(this).apply {
+                hint = "הכנס טקסט לשליחה..."
+                setTextColor(0xFFFFFFFF.toInt())
+                setHintTextColor(0xFF666666.toInt())
+                setBackgroundColor(0xFF1A2535.toInt())
+                setPadding(24, 16, 24, 16)
+            }
+            AlertDialog.Builder(this)
+                .setTitle("שלח טקסט למכשיר מרוחק")
+                .setView(input)
+                .setPositiveButton("שלח") { _, _ ->
+                    val text = input.text.toString()
+                    if (text.isNotBlank()) {
+                        safe { client?.setClipboard(text) }
+                    }
+                }
+                .setNegativeButton("ביטול", null)
+                .show()
+        } catch (e: Exception) { }
+    }
+
     private fun showShellDialog() {
         if (isDestroyed) return
         try {
             val input = EditText(this).apply {
                 hint = "הכנס פקודה..."
                 setTextColor(0xFFFFFFFF.toInt())
-                setHintTextColor(0xFF888888.toInt())
+                setHintTextColor(0xFF666666.toInt())
                 setBackgroundColor(0xFF1A2535.toInt())
                 setPadding(24, 16, 24, 16)
+                setTextIsSelectable(true)
             }
             AlertDialog.Builder(this)
                 .setTitle("פקודת Shell מרחוק")
@@ -232,39 +315,25 @@ class RemoteViewActivity : AppCompatActivity() {
                     if (cmd.isBlank()) return@setPositiveButton
                     safe {
                         val result = client?.runShell(cmd, useRoot) ?: "שגיאה"
-                        if (!isDestroyed) {
-                            runOnUiThread {
-                                try {
-                                    AlertDialog.Builder(this)
-                                        .setTitle("תוצאה")
-                                        .setMessage(result.take(2000).ifBlank { "(ריק)" })
-                                        .setPositiveButton("סגור", null)
-                                        .show()
-                                } catch (e: Exception) { }
-                            }
+                        if (!isDestroyed) runOnUiThread {
+                            try {
+                                AlertDialog.Builder(this)
+                                    .setTitle("תוצאה")
+                                    .setMessage(result.take(3000).ifBlank { "(ריק)" })
+                                    .setPositiveButton("סגור", null)
+                                    .setNeutralButton("העתק") { _, _ ->
+                                        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        cm.setPrimaryClip(ClipData.newPlainText("shell", result))
+                                        Toast.makeText(this, "הועתק ✓", Toast.LENGTH_SHORT).show()
+                                    }
+                                    .show()
+                            } catch (e: Exception) { }
                         }
                     }
                 }
                 .setNegativeButton("ביטול", null)
                 .show()
         } catch (e: Exception) { }
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        try { menuInflater.inflate(R.menu.remote_menu, menu) } catch (e: Exception) {}
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.menuToggleRoot -> {
-                useRoot = !useRoot
-                item.title = if (useRoot) "Root: פעיל ✅" else "Root: כבוי"
-                Toast.makeText(this, if (useRoot) "מצב Root פעיל" else "Root כבוי", Toast.LENGTH_SHORT).show()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
     }
 
     override fun onDestroy() {

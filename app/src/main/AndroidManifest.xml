@@ -48,6 +48,7 @@
 
         <activity android:name=".ui.DeviceScanActivity" android:exported="false"/>
         <activity android:name=".ui.WifiScanActivity" android:exported="false"/>
+        <activity android:name=".ui.SettingsActivity" android:exported="false"/>
 
         <!-- SERVER SIDE -->
         <service android:name=".screen.ScreenShareService"

@@ -22,12 +22,13 @@ import com.bsd.remotecontrol.input.RemoteAccessibilityService
 import com.bsd.remotecontrol.screen.ScreenShareService
 import kotlinx.coroutines.launch
 
-// ----- MainActivity -----
 class MainActivity : AppCompatActivity() {
 
     private lateinit var btnServer: Button
     private lateinit var btnClient: Button
     private lateinit var btnClientWifi: Button
+    private lateinit var btnSettings: ImageButton
+    private lateinit var btnAccessibilityOpen: Button
     private lateinit var switchRoot: Switch
     private lateinit var tvStatus: TextView
     private lateinit var tvAccessibility: TextView
@@ -42,14 +43,16 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main_remote)
 
-        btnServer       = findViewById(R.id.btnServer)
-        btnClient       = findViewById(R.id.btnClient)
-        btnClientWifi   = findViewById(R.id.btnClientWifi)
-        switchRoot      = findViewById(R.id.switchRoot)
-        tvStatus        = findViewById(R.id.tvStatus)
-        tvAccessibility = findViewById(R.id.tvAccessibility)
-        statusDot       = findViewById(R.id.statusDot)
-        tvRootStatus    = findViewById(R.id.tvRootStatus)
+        btnServer           = findViewById(R.id.btnServer)
+        btnClient           = findViewById(R.id.btnClient)
+        btnClientWifi       = findViewById(R.id.btnClientWifi)
+        btnSettings         = findViewById(R.id.btnSettings)
+        btnAccessibilityOpen= findViewById(R.id.btnAccessibilityOpen)
+        switchRoot          = findViewById(R.id.switchRoot)
+        tvStatus            = findViewById(R.id.tvStatus)
+        tvAccessibility     = findViewById(R.id.tvAccessibility)
+        statusDot           = findViewById(R.id.statusDot)
+        tvRootStatus        = findViewById(R.id.tvRootStatus)
 
         requestPermissions()
 
@@ -65,12 +68,19 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, WifiScanActivity::class.java))
         }
 
-        // לחיצה על accessibility - פותחת הגדרות ישירות
-        tvAccessibility.setOnClickListener {
+        btnSettings.setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
+        btnAccessibilityOpen.setOnClickListener {
             try {
                 startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                 Toast.makeText(this, "מצא 'BT Remote Control' והפעל אותו", Toast.LENGTH_LONG).show()
             } catch (e: Exception) { }
+        }
+
+        tvAccessibility.setOnClickListener {
+            btnAccessibilityOpen.performClick()
         }
     }
 
@@ -89,7 +99,6 @@ class MainActivity : AppCompatActivity() {
                 }
                 .show()
         } catch (e: Exception) {
-            // fallback אם האלרט נכשל
             requestScreenCapture()
         }
     }
@@ -97,12 +106,14 @@ class MainActivity : AppCompatActivity() {
     private fun requestScreenCapture() {
         try {
             val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            @Suppress("DEPRECATION")
             startActivityForResult(mpm.createScreenCaptureIntent(), PROJ_REQ)
         } catch (e: Exception) {
             Toast.makeText(this, "שגיאה בבקשת צילום מסך", Toast.LENGTH_SHORT).show()
         }
     }
 
+    @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == PROJ_REQ) {
@@ -142,20 +153,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setServerUI(running: Boolean) {
-        btnServer.text = if (running) "עצור שרת" else "הפעל שרת (מכשיר נשלט)"
+        btnServer.text = if (running) "■  עצור שרת" else "▶  הפעל שרת  (מכשיר נשלט)"
         btnServer.backgroundTintList = getColorStateList(
-            if (running) android.R.color.holo_red_light else R.color.red_primary
+            if (running) android.R.color.holo_green_dark else R.color.red_primary
         )
-        tvStatus.text = if (running) "שרת פעיל [$connectionType]" else "שרת כבוי"
+        tvStatus.text = if (running) "⬤ שרת פעיל [$connectionType]" else "שרת כבוי"
         statusDot.setBackgroundResource(if (running) R.drawable.dot_green else R.drawable.dot_red)
     }
 
     private fun updateAccessibilityStatus() {
         val enabled = RemoteAccessibilityService.isEnabled
-        tvAccessibility.apply {
-            text = if (enabled) "✅ שירות נגישות פעיל" else "⚠️ שירות נגישות כבוי — לחץ להפעלה"
-            setTextColor(if (enabled) 0xFF1DB954.toInt() else 0xFFFFC107.toInt())
-        }
+        tvAccessibility.text = if (enabled) "✅ שירות נגישות פעיל" else "⚠️ שירות נגישות כבוי"
+        tvAccessibility.setTextColor(if (enabled) 0xFF22C55E.toInt() else 0xFFFFC107.toInt())
+        btnAccessibilityOpen.visibility = if (enabled) View.GONE else View.VISIBLE
     }
 
     private fun requestPermissions() {
@@ -189,7 +199,6 @@ class MainActivity : AppCompatActivity() {
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        // אל תקרוס
     }
 
     override fun onResume() {
@@ -217,6 +226,7 @@ class DeviceScanActivity : AppCompatActivity() {
         override fun onReceive(ctx: Context, intent: Intent) {
             when (intent.action) {
                 BluetoothDevice.ACTION_FOUND -> {
+                    @Suppress("DEPRECATION")
                     val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
                     device?.let {
                         if (allDevices.none { d -> d.address == it.address }) {
@@ -353,8 +363,8 @@ class RemoteDeviceAdapter(
             setTextColor(0xFFFFFFFF.toInt())
         }
         view.findViewById<TextView>(R.id.tvDeviceAddr).apply {
-            text = "${device.address} • ${if (isPaired) "מזווג" else "חדש"}"
-            setTextColor(if (isPaired) 0xFF4CAF50.toInt() else 0xFF888888.toInt())
+            text = "${device.address} • ${if (isPaired) "מזווג ✓" else "חדש"}"
+            setTextColor(if (isPaired) 0xFF22C55E.toInt() else 0xFF888888.toInt())
         }
         return view
     }

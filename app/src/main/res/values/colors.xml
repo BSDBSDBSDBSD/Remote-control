@@ -7,4 +7,5 @@
     <color name="bg_card">#1A2535</color>
     <color name="text_white">#FFFFFF</color>
     <color name="text_gray">#AAAAAA</color>
+    <color name="ic_launcher_background">#0A0E1A</color>
 </resources>
