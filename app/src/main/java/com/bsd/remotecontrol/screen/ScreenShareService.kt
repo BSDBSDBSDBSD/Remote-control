@@ -222,14 +222,14 @@ class ScreenShareService : Service() {
                 val cmd = try { RemoteCommand.fromJson(String(jsonBytes)) } catch (e: Exception) { continue }
 
                 when (cmd.type) {
-                    CommandTypes.TOUCH   -> { InputManager.tap(cmd.x, cmd.y, cmd.useRoot && useRoot); sendOk(output) }
-                    CommandTypes.SWIPE   -> { InputManager.swipe(cmd.x, cmd.y, cmd.x2, cmd.y2, cmd.useRoot && useRoot); sendOk(output) }
-                    CommandTypes.BACK    -> { InputManager.back(cmd.useRoot && useRoot); sendOk(output) }
-                    CommandTypes.HOME    -> { InputManager.home(cmd.useRoot && useRoot); sendOk(output) }
-                    CommandTypes.RECENTS -> { InputManager.recents(cmd.useRoot && useRoot); sendOk(output) }
-                    CommandTypes.VOLUME_UP   -> { InputManager.volumeUp(cmd.useRoot && useRoot); sendOk(output) }
-                    CommandTypes.VOLUME_DOWN -> { InputManager.volumeDown(cmd.useRoot && useRoot); sendOk(output) }
-                    CommandTypes.KEY     -> { InputManager.key(cmd.keyCode, cmd.useRoot && useRoot); sendOk(output) }
+                    CommandTypes.TOUCH   -> { InputManager.tap(cmd.x, cmd.y, useRoot); sendOk(output) }
+                    CommandTypes.SWIPE   -> { InputManager.swipe(cmd.x, cmd.y, cmd.x2, cmd.y2, useRoot); sendOk(output) }
+                    CommandTypes.BACK    -> { InputManager.back(useRoot); sendOk(output) }
+                    CommandTypes.HOME    -> { InputManager.home(useRoot); sendOk(output) }
+                    CommandTypes.RECENTS -> { InputManager.recents(useRoot); sendOk(output) }
+                    CommandTypes.VOLUME_UP   -> { InputManager.volumeUp(useRoot); sendOk(output) }
+                    CommandTypes.VOLUME_DOWN -> { InputManager.volumeDown(useRoot); sendOk(output) }
+                    CommandTypes.KEY     -> { InputManager.key(cmd.keyCode, useRoot); sendOk(output) }
 
                     CommandTypes.APP_LIST -> {
                         val apps = InputManager.getInstalledApps(this@ScreenShareService)
@@ -240,11 +240,11 @@ class ScreenShareService : Service() {
                         sendJson(output, RemoteResponse(success = ok).toJson())
                     }
                     CommandTypes.APP_STOP -> {
-                        val ok = InputManager.stopApp(cmd.packageName, cmd.useRoot && useRoot)
+                        val ok = InputManager.stopApp(cmd.packageName, useRoot)
                         sendJson(output, RemoteResponse(success = ok).toJson())
                     }
                     CommandTypes.SHELL -> {
-                        val out = InputManager.runShell(cmd.shellCmd, cmd.useRoot && useRoot)
+                        val out = InputManager.runShell(cmd.shellCmd, useRoot)
                         sendJson(output, RemoteResponse(success = true, shellOutput = out).toJson())
                     }
                     CommandTypes.SCREEN_INFO -> {
