@@ -5,6 +5,7 @@
     android:orientation="horizontal"
     android:background="#000000">
 
+    <!-- Screen area -->
     <FrameLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
@@ -23,70 +24,142 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"/>
 
-        <TextView
-            android:id="@+id/tvStatus"
+        <!-- Status bar overlay -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="4dp"
-            android:textSize="11sp"
-            android:textColor="#AAAAAA"
-            android:background="#80000000"/>
+            android:orientation="horizontal"
+            android:background="#BB000000"
+            android:padding="4dp">
+
+            <TextView
+                android:id="@+id/tvStatus"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="11sp"
+                android:textColor="#CCCCCC"
+                android:maxLines="1"
+                android:ellipsize="end"/>
+
+            <TextView
+                android:id="@+id/tvFps"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 fps"
+                android:textSize="11sp"
+                android:textColor="#1DB954"
+                android:layout_marginStart="8dp"/>
+        </LinearLayout>
+
     </FrameLayout>
 
+    <!-- Side control panel -->
     <LinearLayout
-        android:layout_width="64dp"
+        android:layout_width="68dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:gravity="center"
+        android:gravity="center_horizontal"
         android:background="#1E1E1E"
         android:padding="4dp">
 
-        <ImageButton android:id="@+id/btnVolUp"
-            android:layout_width="48dp" android:layout_height="48dp"
-            android:src="@android:drawable/ic_lock_silent_mode_off"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="#FFFFFF" android:layout_marginBottom="4dp"/>
+        <Button
+            android:id="@+id/btnVolUp"
+            android:layout_width="60dp"
+            android:layout_height="38dp"
+            android:text="VOL+"
+            android:textSize="9sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#333333"
+            android:layout_marginBottom="4dp"
+            android:padding="2dp"/>
 
-        <ImageButton android:id="@+id/btnVolDown"
-            android:layout_width="48dp" android:layout_height="48dp"
-            android:src="@android:drawable/ic_lock_silent_mode"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="#FFFFFF" android:layout_marginBottom="16dp"/>
+        <Button
+            android:id="@+id/btnVolDown"
+            android:layout_width="60dp"
+            android:layout_height="38dp"
+            android:text="VOL-"
+            android:textSize="9sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#333333"
+            android:layout_marginBottom="10dp"
+            android:padding="2dp"/>
 
-        <ImageButton android:id="@+id/btnBack"
-            android:layout_width="48dp" android:layout_height="48dp"
-            android:src="@android:drawable/ic_media_previous"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="#FFFFFF" android:layout_marginBottom="4dp"/>
+        <Button
+            android:id="@+id/btnBack"
+            android:layout_width="60dp"
+            android:layout_height="38dp"
+            android:text="◀ חזור"
+            android:textSize="9sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#2A2A2A"
+            android:layout_marginBottom="4dp"
+            android:padding="2dp"/>
 
-        <ImageButton android:id="@+id/btnHome"
-            android:layout_width="48dp" android:layout_height="48dp"
-            android:src="@android:drawable/ic_menu_compass"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="#FFFFFF" android:layout_marginBottom="4dp"/>
+        <Button
+            android:id="@+id/btnHome"
+            android:layout_width="60dp"
+            android:layout_height="38dp"
+            android:text="⌂ בית"
+            android:textSize="9sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#2A2A2A"
+            android:layout_marginBottom="4dp"
+            android:padding="2dp"/>
 
-        <ImageButton android:id="@+id/btnRecents"
-            android:layout_width="48dp" android:layout_height="48dp"
-            android:src="@android:drawable/ic_menu_recent_history"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="#FFFFFF" android:layout_marginBottom="16dp"/>
+        <Button
+            android:id="@+id/btnRecents"
+            android:layout_width="60dp"
+            android:layout_height="38dp"
+            android:text="⊞ פתוחות"
+            android:textSize="9sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#2A2A2A"
+            android:layout_marginBottom="10dp"
+            android:padding="2dp"/>
 
-        <ImageButton android:id="@+id/btnApps"
-            android:layout_width="48dp" android:layout_height="48dp"
-            android:src="@android:drawable/ic_menu_manage"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="#2196F3" android:layout_marginBottom="4dp"/>
+        <Button
+            android:id="@+id/btnApps"
+            android:layout_width="60dp"
+            android:layout_height="38dp"
+            android:text="📱 אפליק׳"
+            android:textSize="9sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#1A3A6A"
+            android:layout_marginBottom="4dp"
+            android:padding="2dp"/>
 
-        <ImageButton android:id="@+id/btnShell"
-            android:layout_width="48dp" android:layout_height="48dp"
-            android:src="@android:drawable/ic_menu_edit"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="#FF9800" android:layout_marginBottom="4dp"/>
+        <Button
+            android:id="@+id/btnShell"
+            android:layout_width="60dp"
+            android:layout_height="38dp"
+            android:text="$ Shell"
+            android:textSize="9sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#3A2A00"
+            android:layout_marginBottom="4dp"
+            android:padding="2dp"/>
 
-        <ImageButton android:id="@+id/btnRefresh"
-            android:layout_width="48dp" android:layout_height="48dp"
-            android:src="@android:drawable/ic_menu_rotate"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="#4CAF50"/>
+        <Button
+            android:id="@+id/btnRefresh"
+            android:layout_width="60dp"
+            android:layout_height="38dp"
+            android:text="↻ רענן"
+            android:textSize="9sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#1A3A1A"
+            android:layout_marginBottom="4dp"
+            android:padding="2dp"/>
+
+        <Button
+            android:id="@+id/btnRoot"
+            android:layout_width="60dp"
+            android:layout_height="38dp"
+            android:text="Root"
+            android:textSize="9sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#4A1A00"
+            android:padding="2dp"/>
+
     </LinearLayout>
 </LinearLayout>

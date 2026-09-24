@@ -11,12 +11,12 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:padding="16dp"
-        android:background="#1A2535">
+        android:background="#1A0D1A">
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="מכשירי Bluetooth"
+            android:text="WiFi Direct — שליטה"
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF"/>
@@ -26,16 +26,26 @@
             android:layout_height="40dp"
             android:text="חפש"
             android:textSize="13sp"
-            android:backgroundTint="#2563EB"
+            android:backgroundTint="#7C3AED"
             android:textColor="#FFFFFF"/>
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvMyIp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:text="IP שלי: ..."
+        android:textColor="#9C27B0"
+        android:textSize="13sp"
+        android:background="#1A0D1A"/>
 
     <TextView
         android:id="@+id/tvHint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp"
-        android:text="טוען מכשירים..."
+        android:text="מחפש מכשירים..."
         android:textColor="#AAAAAA"
         android:textSize="14sp"/>
 

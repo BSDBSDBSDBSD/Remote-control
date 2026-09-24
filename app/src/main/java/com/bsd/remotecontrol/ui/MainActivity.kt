@@ -27,6 +27,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var btnServer: Button
     private lateinit var btnClient: Button
+    private lateinit var btnClientWifi: Button
     private lateinit var switchRoot: Switch
     private lateinit var tvStatus: TextView
     private lateinit var tvAccessibility: TextView
@@ -35,7 +36,7 @@ class MainActivity : AppCompatActivity() {
 
     private val PROJ_REQ = 200
     private val PERM_REQ = 100
-    private var connectionType = "bluetooth" // bluetooth / wifi
+    private var connectionType = "bluetooth"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +44,7 @@ class MainActivity : AppCompatActivity() {
 
         btnServer       = findViewById(R.id.btnServer)
         btnClient       = findViewById(R.id.btnClient)
+        btnClientWifi   = findViewById(R.id.btnClientWifi)
         switchRoot      = findViewById(R.id.switchRoot)
         tvStatus        = findViewById(R.id.tvStatus)
         tvAccessibility = findViewById(R.id.tvAccessibility)
@@ -59,31 +61,46 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, DeviceScanActivity::class.java))
         }
 
-        // לחיצה על accessibility - פותחת הגדרות
+        btnClientWifi.setOnClickListener {
+            startActivity(Intent(this, WifiScanActivity::class.java))
+        }
+
+        // לחיצה על accessibility - פותחת הגדרות ישירות
         tvAccessibility.setOnClickListener {
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            Toast.makeText(this, "מצא 'BT Remote Control' והפעל אותו", Toast.LENGTH_LONG).show()
+            try {
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                Toast.makeText(this, "מצא 'BT Remote Control' והפעל אותו", Toast.LENGTH_LONG).show()
+            } catch (e: Exception) { }
         }
     }
 
     private fun showServerOptions() {
-        val options = arrayOf("Bluetooth (ללא אינטרנט)", "Wi-Fi Direct (מהיר יותר)")
-        AlertDialog.Builder(this, R.style.DarkDialog)
-            .setTitle("בחר סוג חיבור")
-            .setItems(options) { _, which ->
-                connectionType = if (which == 0) "bluetooth" else "wifi"
-                if (switchRoot.isChecked) {
-                    startServer(null, -1)
-                } else {
-                    requestScreenCapture()
+        try {
+            val options = arrayOf("Bluetooth (ללא אינטרנט)", "Wi-Fi Direct (מהיר יותר)")
+            AlertDialog.Builder(this)
+                .setTitle("בחר סוג חיבור")
+                .setItems(options) { _, which ->
+                    connectionType = if (which == 0) "bluetooth" else "wifi"
+                    if (switchRoot.isChecked) {
+                        startServer(null, -1)
+                    } else {
+                        requestScreenCapture()
+                    }
                 }
-            }
-            .show()
+                .show()
+        } catch (e: Exception) {
+            // fallback אם האלרט נכשל
+            requestScreenCapture()
+        }
     }
 
     private fun requestScreenCapture() {
-        val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        startActivityForResult(mpm.createScreenCaptureIntent(), PROJ_REQ)
+        try {
+            val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            startActivityForResult(mpm.createScreenCaptureIntent(), PROJ_REQ)
+        } catch (e: Exception) {
+            Toast.makeText(this, "שגיאה בבקשת צילום מסך", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -116,14 +133,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun stopServer() {
-        startService(Intent(this, ScreenShareService::class.java).apply {
-            action = ScreenShareService.ACTION_STOP
-        })
+        try {
+            startService(Intent(this, ScreenShareService::class.java).apply {
+                action = ScreenShareService.ACTION_STOP
+            })
+        } catch (e: Exception) {}
         setServerUI(false)
     }
 
     private fun setServerUI(running: Boolean) {
-        btnServer.text = if (running) "עצור שרת" else "הפעל שרת (מצב נשלט)"
+        btnServer.text = if (running) "עצור שרת" else "הפעל שרת (מכשיר נשלט)"
         btnServer.backgroundTintList = getColorStateList(
             if (running) android.R.color.holo_red_light else R.color.red_primary
         )
@@ -133,36 +152,44 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateAccessibilityStatus() {
         val enabled = RemoteAccessibilityService.isEnabled
-        tvAccessibility.text = if (enabled)
-            "✅ שירות נגישות פעיל"
-        else
-            "⚠️ שירות נגישות כבוי — לחץ להפעלה"
-        tvAccessibility.setTextColor(
-            if (enabled) 0xFF1DB954.toInt() else 0xFFFFC107.toInt()
-        )
+        tvAccessibility.apply {
+            text = if (enabled) "✅ שירות נגישות פעיל" else "⚠️ שירות נגישות כבוי — לחץ להפעלה"
+            setTextColor(if (enabled) 0xFF1DB954.toInt() else 0xFFFFC107.toInt())
+        }
     }
 
     private fun requestPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val perms = arrayOf(
-                Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.BLUETOOTH_SCAN,
-                Manifest.permission.BLUETOOTH_ADVERTISE
-            )
-            val denied = perms.filter {
-                ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val perms = arrayOf(
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_ADVERTISE
+                )
+                val denied = perms.filter {
+                    ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+                }
+                if (denied.isNotEmpty()) {
+                    ActivityCompat.requestPermissions(this, denied.toTypedArray(), PERM_REQ)
+                }
             }
-            if (denied.isNotEmpty()) {
-                ActivityCompat.requestPermissions(this, denied.toTypedArray(), PERM_REQ)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(
+                        this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), PERM_REQ)
+                }
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(
-                    this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), PERM_REQ)
-            }
-        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        // אל תקרוס
     }
 
     override fun onResume() {
@@ -172,15 +199,46 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
-// ----- DeviceScanActivity -----
+// ----- DeviceScanActivity (BT) -----
 class DeviceScanActivity : AppCompatActivity() {
 
     private lateinit var listView: ListView
+    private lateinit var btnScan: Button
     private lateinit var progressBar: ProgressBar
     private lateinit var tvHint: TextView
     private val client = RemoteClient()
-    private val devices = mutableListOf<BluetoothDevice>()
+    private val pairedDevices = mutableListOf<BluetoothDevice>()
+    private val scannedDevices = mutableListOf<BluetoothDevice>()
+    private val allDevices = mutableListOf<BluetoothDevice>()
     private lateinit var listAdapter: RemoteDeviceAdapter
+    private var isScanning = false
+
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(ctx: Context, intent: Intent) {
+            when (intent.action) {
+                BluetoothDevice.ACTION_FOUND -> {
+                    val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+                    device?.let {
+                        if (allDevices.none { d -> d.address == it.address }) {
+                            scannedDevices.add(it)
+                            allDevices.add(it)
+                            listAdapter.notifyDataSetChanged()
+                        }
+                    }
+                }
+                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
+                    isScanning = false
+                    progressBar.visibility = View.GONE
+                    btnScan.text = "חפש מכשירים חדשים"
+                    btnScan.isEnabled = true
+                    tvHint.text = if (allDevices.isEmpty())
+                        "לא נמצאו מכשירים. זווג מכשיר ב-Bluetooth ונסה שוב."
+                    else
+                        "${pairedDevices.size} מזווגים | ${scannedDevices.size} חדשים"
+                }
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -190,15 +248,25 @@ class DeviceScanActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         listView    = findViewById(R.id.listDevices)
+        btnScan     = findViewById(R.id.btnScan)
         progressBar = findViewById(R.id.progressBar)
         tvHint      = findViewById(R.id.tvHint)
 
-        listAdapter = RemoteDeviceAdapter(this, devices)
+        listAdapter = RemoteDeviceAdapter(this, allDevices, pairedDevices)
         listView.adapter = listAdapter
         listView.divider = null
 
+        val filter = IntentFilter().apply {
+            addAction(BluetoothDevice.ACTION_FOUND)
+            addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
+        }
+        try { registerReceiver(receiver, filter) } catch (e: Exception) {}
+
         loadPaired()
-        listView.setOnItemClickListener { _, _, pos, _ -> connectTo(devices[pos]) }
+        listView.setOnItemClickListener { _, _, pos, _ ->
+            if (pos < allDevices.size) connectTo(allDevices[pos])
+        }
+        btnScan.setOnClickListener { startDiscovery() }
     }
 
     private fun loadPaired() {
@@ -206,16 +274,32 @@ class DeviceScanActivity : AppCompatActivity() {
             BluetoothAdapter.getDefaultAdapter()?.bondedDevices ?: emptySet()
         } catch (e: SecurityException) { emptySet() }
 
-        devices.clear(); devices.addAll(paired)
+        pairedDevices.clear(); pairedDevices.addAll(paired)
+        allDevices.clear(); allDevices.addAll(paired)
         listAdapter.notifyDataSetChanged()
+        tvHint.text = if (paired.isEmpty())
+            "לא נמצאו מזווגים. לחץ 'חפש' לסריקה."
+        else "${paired.size} מכשירים מזווגים — בחר:"
+    }
 
-        tvHint.text = if (devices.isEmpty())
-            "לא נמצאו מכשירים מזווגים.\nזווג מכשיר בהגדרות Bluetooth ואז חזור."
-        else
-            "${devices.size} מכשירים — בחר מכשיר לשליטה מרחוק:"
+    private fun startDiscovery() {
+        if (isScanning) return
+        val bt = BluetoothAdapter.getDefaultAdapter() ?: return
+        try {
+            if (bt.isDiscovering) bt.cancelDiscovery()
+            bt.startDiscovery()
+            isScanning = true
+            progressBar.visibility = View.VISIBLE
+            btnScan.text = "מחפש..."
+            btnScan.isEnabled = false
+            tvHint.text = "מחפש מכשירים חדשים..."
+        } catch (e: SecurityException) {
+            Toast.makeText(this, "נדרשת הרשאת Bluetooth", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun connectTo(device: BluetoothDevice) {
+        try { BluetoothAdapter.getDefaultAdapter()?.cancelDiscovery() } catch (_: Exception) {}
         progressBar.visibility = View.VISIBLE
         listView.isEnabled = false
         val name = try { device.name ?: device.address } catch (e: SecurityException) { device.address }
@@ -223,18 +307,26 @@ class DeviceScanActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             val ok = try { client.connect(device) } catch (e: Exception) { false }
-            runOnUiThread {
-                progressBar.visibility = View.GONE
-                listView.isEnabled = true
-                if (ok) {
-                    RemoteClientHolder.client = client
-                    RemoteClientHolder.remoteDeviceName = name
-                    startActivity(Intent(this@DeviceScanActivity, RemoteViewActivity::class.java))
-                } else {
-                    tvHint.text = "❌ חיבור נכשל — וודא שהשרת פעיל במכשיר השני"
+            if (!isDestroyed) {
+                runOnUiThread {
+                    progressBar.visibility = View.GONE
+                    listView.isEnabled = true
+                    if (ok) {
+                        RemoteClientHolder.client = client
+                        RemoteClientHolder.remoteDeviceName = name
+                        startActivity(Intent(this@DeviceScanActivity, RemoteViewActivity::class.java))
+                    } else {
+                        tvHint.text = "❌ חיבור נכשל — וודא שהשרת פעיל"
+                    }
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        try { unregisterReceiver(receiver) } catch (_: Exception) {}
+        try { BluetoothAdapter.getDefaultAdapter()?.cancelDiscovery() } catch (_: Exception) {}
+        super.onDestroy()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -245,7 +337,8 @@ class DeviceScanActivity : AppCompatActivity() {
 
 class RemoteDeviceAdapter(
     private val ctx: Context,
-    private val devices: List<BluetoothDevice>
+    private val devices: List<BluetoothDevice>,
+    private val pairedDevices: List<BluetoothDevice>
 ) : BaseAdapter() {
     override fun getCount() = devices.size
     override fun getItem(pos: Int) = devices[pos]
@@ -254,13 +347,14 @@ class RemoteDeviceAdapter(
         val view = convertView ?: LayoutInflater.from(ctx)
             .inflate(R.layout.item_device, parent, false)
         val device = devices[pos]
+        val isPaired = pairedDevices.any { it.address == device.address }
         view.findViewById<TextView>(R.id.tvDeviceName).apply {
-            text = try { device.name ?: "מכשיר לא ידוע" } catch (e: SecurityException) { "מכשיר" }
+            text = try { device.name ?: "מכשיר" } catch (e: SecurityException) { "מכשיר" }
             setTextColor(0xFFFFFFFF.toInt())
         }
         view.findViewById<TextView>(R.id.tvDeviceAddr).apply {
-            text = device.address
-            setTextColor(0xFF888888.toInt())
+            text = "${device.address} • ${if (isPaired) "מזווג" else "חדש"}"
+            setTextColor(if (isPaired) 0xFF4CAF50.toInt() else 0xFF888888.toInt())
         }
         return view
     }

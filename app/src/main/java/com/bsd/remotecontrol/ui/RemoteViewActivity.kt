@@ -15,14 +15,12 @@ class RemoteViewActivity : AppCompatActivity() {
     private lateinit var imageView: ImageView
     private lateinit var progressBar: ProgressBar
     private lateinit var tvStatus: TextView
-    private lateinit var btnBack: ImageButton
-    private lateinit var btnHome: ImageButton
-    private lateinit var btnRecents: ImageButton
-    private lateinit var btnVolUp: ImageButton
-    private lateinit var btnVolDown: ImageButton
-    private lateinit var btnApps: ImageButton
-    private lateinit var btnShell: ImageButton
-    private lateinit var btnRefresh: ImageButton
+    private lateinit var tvFps: TextView
+    private lateinit var btnBack: Button
+    private lateinit var btnHome: Button
+    private lateinit var btnRecents: Button
+    private lateinit var btnVolUp: Button
+    private lateinit var btnVolDown: Button
 
     private val client get() = RemoteClientHolder.client
     private var streamJob: Job? = null
@@ -30,13 +28,18 @@ class RemoteViewActivity : AppCompatActivity() {
     private var remoteW = 1080
     private var remoteH = 1920
 
-    // מעקב נגיעות לswipe
+    // נגיעה
     private var touchStartX = 0f
     private var touchStartY = 0f
     private var touchStartTime = 0L
 
+    // FPS counter
+    private var frameCount = 0
+    private var lastFpsTime = System.currentTimeMillis()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         window.setFlags(
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
             WindowManager.LayoutParams.FLAG_FULLSCREEN
@@ -46,14 +49,18 @@ class RemoteViewActivity : AppCompatActivity() {
         imageView   = findViewById(R.id.ivRemoteScreen)
         progressBar = findViewById(R.id.progressBar)
         tvStatus    = findViewById(R.id.tvStatus)
+        tvFps       = findViewById(R.id.tvFps)
         btnBack     = findViewById(R.id.btnBack)
         btnHome     = findViewById(R.id.btnHome)
         btnRecents  = findViewById(R.id.btnRecents)
         btnVolUp    = findViewById(R.id.btnVolUp)
         btnVolDown  = findViewById(R.id.btnVolDown)
-        btnApps     = findViewById(R.id.btnApps)
-        btnShell    = findViewById(R.id.btnShell)
-        btnRefresh  = findViewById(R.id.btnRefresh)
+
+        if (client == null) {
+            Toast.makeText(this, "שגיאה: אין חיבור פעיל", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
 
         remoteW = client?.remoteScreenWidth ?: 1080
         remoteH = client?.remoteScreenHeight ?: 1920
@@ -66,13 +73,13 @@ class RemoteViewActivity : AppCompatActivity() {
 
     private fun setupTouch() {
         imageView.setOnTouchListener { view, event ->
-            // guard: view must have size
-            if (view.width <= 0 || view.height <= 0) return@setOnTouchListener true
+            // Guard: view חייב להיות בגודל חוקי
+            val vw = view.width
+            val vh = view.height
+            if (vw <= 0 || vh <= 0) return@setOnTouchListener true
 
-            val scaleX = remoteW.toFloat() / view.width.toFloat()
-            val scaleY = remoteH.toFloat() / view.height.toFloat()
-            val remX = (event.x * scaleX).toInt().coerceIn(0, remoteW - 1)
-            val remY = (event.y * scaleY).toInt().coerceIn(0, remoteH - 1)
+            val scaleX = remoteW.toFloat() / vw.toFloat()
+            val scaleY = remoteH.toFloat() / vh.toFloat()
 
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -86,16 +93,17 @@ class RemoteViewActivity : AppCompatActivity() {
                     val dt = System.currentTimeMillis() - touchStartTime
                     val dist = Math.sqrt((dx * dx + dy * dy).toDouble())
 
-                    if (dist < 20 && dt < 500) {
+                    val startRemX = (touchStartX * scaleX).toInt().coerceIn(0, remoteW - 1)
+                    val startRemY = (touchStartY * scaleY).toInt().coerceIn(0, remoteH - 1)
+
+                    if (dist < 25 && dt < 400) {
                         // Tap פשוט
-                        val startRemX = ((touchStartX * scaleX)).toInt().coerceIn(0, remoteW - 1)
-                        val startRemY = ((touchStartY * scaleY)).toInt().coerceIn(0, remoteH - 1)
-                        safeLaunch { client?.tap(startRemX, startRemY, useRoot) }
-                    } else if (dist >= 20) {
+                        safe { client?.tap(startRemX, startRemY, useRoot) }
+                    } else if (dist >= 25) {
                         // Swipe
-                        val startRemX = ((touchStartX * scaleX)).toInt().coerceIn(0, remoteW - 1)
-                        val startRemY = ((touchStartY * scaleY)).toInt().coerceIn(0, remoteH - 1)
-                        safeLaunch { client?.swipe(startRemX, startRemY, remX, remY, useRoot) }
+                        val endRemX = (event.x * scaleX).toInt().coerceIn(0, remoteW - 1)
+                        val endRemY = (event.y * scaleY).toInt().coerceIn(0, remoteH - 1)
+                        safe { client?.swipe(startRemX, startRemY, endRemX, endRemY, useRoot) }
                     }
                 }
             }
@@ -103,12 +111,18 @@ class RemoteViewActivity : AppCompatActivity() {
         }
     }
 
-    private fun safeLaunch(block: suspend () -> Unit) {
+    // wrapper בטוח לכל coroutine — לא יקרוס גם אם האקטיביטי נסגרה
+    private fun safe(block: suspend () -> Unit) {
+        if (isDestroyed || isFinishing) return
         try {
             lifecycleScope.launch(Dispatchers.IO) {
-                try { block() } catch (e: Exception) {
-                    runOnUiThread {
-                        tvStatus.text = "שגיאה: ${e.message?.take(50)}"
+                try {
+                    if (!isDestroyed) block()
+                } catch (e: Exception) {
+                    if (!isDestroyed) {
+                        runOnUiThread {
+                            tvStatus.text = "שגיאה: ${e.message?.take(40)}"
+                        }
                     }
                 }
             }
@@ -118,30 +132,52 @@ class RemoteViewActivity : AppCompatActivity() {
     }
 
     private fun setupButtons() {
-        btnBack.setOnClickListener    { safeLaunch { client?.back(useRoot) } }
-        btnHome.setOnClickListener    { safeLaunch { client?.home(useRoot) } }
-        btnRecents.setOnClickListener { safeLaunch { client?.recents(useRoot) } }
-        btnVolUp.setOnClickListener   { safeLaunch { client?.volumeUp(useRoot) } }
-        btnVolDown.setOnClickListener { safeLaunch { client?.volumeDown(useRoot) } }
-        btnApps.setOnClickListener    { showAppsList() }
-        btnShell.setOnClickListener   { showShellDialog() }
-        btnRefresh.setOnClickListener { restartStream() }
+        btnBack.setOnClickListener    { safe { client?.back(useRoot) } }
+        btnHome.setOnClickListener    { safe { client?.home(useRoot) } }
+        btnRecents.setOnClickListener { safe { client?.recents(useRoot) } }
+        btnVolUp.setOnClickListener   { safe { client?.volumeUp(useRoot) } }
+        btnVolDown.setOnClickListener { safe { client?.volumeDown(useRoot) } }
+
+        findViewById<Button>(R.id.btnApps).setOnClickListener    { showAppsList() }
+        findViewById<Button>(R.id.btnShell).setOnClickListener   { showShellDialog() }
+        findViewById<Button>(R.id.btnRefresh).setOnClickListener { restartStream() }
+
+        // Root toggle
+        val btnRoot = findViewById<Button?>(R.id.btnRoot)
+        btnRoot?.setOnClickListener {
+            useRoot = !useRoot
+            btnRoot.text = if (useRoot) "Root ✅" else "Root"
+            Toast.makeText(this, if (useRoot) "Root מופעל" else "Root כבוי", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun startStream() {
+        if (isDestroyed) return
         progressBar.visibility = View.VISIBLE
         streamJob?.cancel()
         streamJob = client?.startStream { jpegBytes ->
+            if (isDestroyed) return@startStream
             try {
                 val bmp = BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.size)
-                if (bmp != null) {
+                if (bmp != null && !isDestroyed) {
+                    // FPS
+                    frameCount++
+                    val now = System.currentTimeMillis()
+                    if (now - lastFpsTime >= 1000) {
+                        val fps = frameCount
+                        frameCount = 0
+                        lastFpsTime = now
+                        runOnUiThread { if (!isDestroyed) tvFps.text = "$fps fps" }
+                    }
                     runOnUiThread {
-                        progressBar.visibility = View.GONE
-                        imageView.setImageBitmap(bmp)
+                        if (!isDestroyed) {
+                            progressBar.visibility = View.GONE
+                            imageView.setImageBitmap(bmp)
+                        }
                     }
                 }
             } catch (e: Exception) {
-                // אל תקרוס על frame פגום
+                // לא לקרוס על frame פגום
             }
         }
     }
@@ -152,57 +188,70 @@ class RemoteViewActivity : AppCompatActivity() {
     }
 
     private fun showAppsList() {
+        if (isDestroyed) return
         progressBar.visibility = View.VISIBLE
-        safeLaunch {
+        safe {
             val apps = client?.getAppList() ?: emptyList()
-            runOnUiThread {
-                progressBar.visibility = View.GONE
-                if (apps.isEmpty()) {
-                    Toast.makeText(this, "לא נמצאו אפליקציות", Toast.LENGTH_SHORT).show()
-                    return@runOnUiThread
-                }
-                val names = apps.map { it.name }.toTypedArray()
-                AlertDialog.Builder(this, R.style.DarkDialog)
-                    .setTitle("אפליקציות מותקנות (${apps.size})")
-                    .setItems(names) { _, i ->
-                        safeLaunch { client?.launchApp(apps[i].packageName) }
+            if (!isDestroyed) {
+                runOnUiThread {
+                    progressBar.visibility = View.GONE
+                    if (apps.isEmpty()) {
+                        Toast.makeText(this, "לא נמצאו אפליקציות", Toast.LENGTH_SHORT).show()
+                        return@runOnUiThread
                     }
-                    .setNegativeButton("ביטול", null)
-                    .show()
+                    val names = apps.map { it.name }.toTypedArray()
+                    try {
+                        AlertDialog.Builder(this)
+                            .setTitle("אפליקציות (${apps.size})")
+                            .setItems(names) { _, i ->
+                                safe { client?.launchApp(apps[i].packageName) }
+                            }
+                            .setNegativeButton("ביטול", null)
+                            .show()
+                    } catch (e: Exception) { }
+                }
             }
         }
     }
 
     private fun showShellDialog() {
-        val input = EditText(this).apply {
-            hint = "הכנס פקודה..."
-            setTextColor(0xFFFFFFFF.toInt())
-            setHintTextColor(0xFF888888.toInt())
-            setPadding(24, 16, 24, 16)
-        }
-        AlertDialog.Builder(this, R.style.DarkDialog)
-            .setTitle("פקודת Shell במכשיר המרוחק")
-            .setView(input)
-            .setPositiveButton("הפעל") { _, _ ->
-                val cmd = input.text.toString().trim()
-                if (cmd.isBlank()) return@setPositiveButton
-                safeLaunch {
-                    val result = client?.runShell(cmd, useRoot) ?: "שגיאה"
-                    runOnUiThread {
-                        AlertDialog.Builder(this, R.style.DarkDialog)
-                            .setTitle("תוצאה")
-                            .setMessage(result.take(2000).ifBlank { "(ריק)" })
-                            .setPositiveButton("סגור", null)
-                            .show()
+        if (isDestroyed) return
+        try {
+            val input = EditText(this).apply {
+                hint = "הכנס פקודה..."
+                setTextColor(0xFFFFFFFF.toInt())
+                setHintTextColor(0xFF888888.toInt())
+                setBackgroundColor(0xFF1A2535.toInt())
+                setPadding(24, 16, 24, 16)
+            }
+            AlertDialog.Builder(this)
+                .setTitle("פקודת Shell מרחוק")
+                .setView(input)
+                .setPositiveButton("הפעל") { _, _ ->
+                    val cmd = input.text.toString().trim()
+                    if (cmd.isBlank()) return@setPositiveButton
+                    safe {
+                        val result = client?.runShell(cmd, useRoot) ?: "שגיאה"
+                        if (!isDestroyed) {
+                            runOnUiThread {
+                                try {
+                                    AlertDialog.Builder(this)
+                                        .setTitle("תוצאה")
+                                        .setMessage(result.take(2000).ifBlank { "(ריק)" })
+                                        .setPositiveButton("סגור", null)
+                                        .show()
+                                } catch (e: Exception) { }
+                            }
+                        }
                     }
                 }
-            }
-            .setNegativeButton("ביטול", null)
-            .show()
+                .setNegativeButton("ביטול", null)
+                .show()
+        } catch (e: Exception) { }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.remote_menu, menu)
+        try { menuInflater.inflate(R.menu.remote_menu, menu) } catch (e: Exception) {}
         return true
     }
 
@@ -211,7 +260,7 @@ class RemoteViewActivity : AppCompatActivity() {
             R.id.menuToggleRoot -> {
                 useRoot = !useRoot
                 item.title = if (useRoot) "Root: פעיל ✅" else "Root: כבוי"
-                Toast.makeText(this, if (useRoot) "מצב Root פעיל" else "מצב Root כבוי", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, if (useRoot) "מצב Root פעיל" else "Root כבוי", Toast.LENGTH_SHORT).show()
                 true
             }
             else -> super.onOptionsItemSelected(item)

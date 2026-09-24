@@ -8,12 +8,14 @@ import com.bsd.remotecontrol.model.RemoteResponse
 import com.bsd.remotecontrol.screen.ScreenShareService
 import kotlinx.coroutines.*
 import java.io.*
+import java.net.Socket as TcpSocket
 
 class RemoteClient {
 
     companion object { const val TAG = "RemoteClient" }
 
-    private var socket: BluetoothSocket? = null
+    private var btSocket: BluetoothSocket? = null
+    private var tcpSocket: TcpSocket? = null
     private var input: DataInputStream? = null
     private var output: DataOutputStream? = null
     var isConnected = false
@@ -21,13 +23,34 @@ class RemoteClient {
     var remoteScreenWidth = 1080
     var remoteScreenHeight = 1920
 
+    // חיבור TCP (WiFi Direct)
+    fun connectWithSocket(socket: TcpSocket): Boolean {
+        return try {
+            disconnect()
+            tcpSocket = socket
+            input  = DataInputStream(BufferedInputStream(socket.getInputStream()))
+            output = DataOutputStream(BufferedOutputStream(socket.getOutputStream()))
+            isConnected = true
+            // קבלת מידע מסך בsync
+            val info = sendCommand(RemoteCommand("SCREEN_INFO"))
+            if (info != null) {
+                remoteScreenWidth  = info.screenWidth
+                remoteScreenHeight = info.screenHeight
+            }
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "TCP Connect failed: ${e.message}")
+            false
+        }
+    }
+
     suspend fun connect(device: BluetoothDevice): Boolean = withContext(Dispatchers.IO) {
         try {
             disconnect()
             val s = device.createRfcommSocketToServiceRecord(ScreenShareService.BT_UUID)
-            BluetoothAdapter.getDefaultAdapter().cancelDiscovery()
+            BluetoothAdapter.getDefaultAdapter()?.cancelDiscovery()
             s.connect()
-            socket = s
+            btSocket = s
             input  = DataInputStream(BufferedInputStream(s.inputStream))
             output = DataOutputStream(BufferedOutputStream(s.outputStream))
             isConnected = true
@@ -46,8 +69,12 @@ class RemoteClient {
     }
 
     fun disconnect() {
-        try { input?.close(); output?.close(); socket?.close() } catch (_: Exception) {}
         isConnected = false
+        try { input?.close() } catch (_: Exception) {}
+        try { output?.close() } catch (_: Exception) {}
+        try { btSocket?.close() } catch (_: Exception) {}
+        try { tcpSocket?.close() } catch (_: Exception) {}
+        btSocket = null; tcpSocket = null
     }
 
     // -------- CONTROL --------
